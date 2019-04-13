@@ -35,6 +35,15 @@ var Game = /** @class */ (function () {
             trigger: BABYLON.ActionManager.OnKeyUpTrigger,
             parameter: 'a'
         }, function () { keyheld = false; }));
+        //setup pp
+        var postProcess = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);
+        var pallete = new BABYLON.Texture("./Assets/Effects/paletteGB.png", this._scene);
+        postProcess.onApply = function (effect) {
+            effect.setFloat2("screenSize", postProcess.width, postProcess.height);
+            effect.setTexture("pallete", pallete);
+            effect.setFloat("colorPrecision", 8);
+        };
+        //setup update
         this._scene.onBeforeRenderObservable.add(function () { return _this.update(); });
     };
     Game.prototype.doRender = function () {
