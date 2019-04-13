@@ -37,7 +37,7 @@ var Game = /** @class */ (function () {
         }, function () { keyheld = false; }));
         //setup pp
         var postProcess = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);
-        var pallete = new BABYLON.Texture("./Assets/Effects/paletteGB.png", this._scene);
+        var pallete = new BABYLON.Texture("./Assets/Effects/palette.png", this._scene);
         postProcess.onApply = function (effect) {
             effect.setFloat2("screenSize", postProcess.width, postProcess.height);
             effect.setTexture("pallete", pallete);
