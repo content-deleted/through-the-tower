@@ -6,14 +6,14 @@ var Game = /** @class */ (function () {
         this._engine = new BABYLON.Engine(this._canvas, true);
     }
     Game.prototype.createScene = function () {
+        var _this = this;
         // Create a basic BJS Scene object.
         this._scene = new BABYLON.Scene(this._engine);
-        // Create a FreeCamera, and set its position to (x:0, y:5, z:-10).
-        this._camera = new BABYLON.FreeCamera('camera1', new BABYLON.Vector3(0, 5, -10), this._scene);
-        // Target the camera to scene origin.
-        this._camera.setTarget(BABYLON.Vector3.Zero());
+        // Parameters: alpha, beta, radius, target position, scene
+        this._camera = new BABYLON.ArcRotateCamera("mainCam", 0, Math.PI / 2, 30, new BABYLON.Vector3(0, 0, 0), this._scene);
         // Attach the camera to the canvas.
         this._camera.attachControl(this._canvas, false);
+        this._camera.inputs.clear();
         // Create a basic light, aiming 0,1,0 - meaning, to the sky.
         this._light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 1, 0), this._scene);
         // Create a built-in "sphere" shape; with 16 segments and diameter of 2.
@@ -24,8 +24,6 @@ var Game = /** @class */ (function () {
         tex.vScale = 10;
         brickMat.diffuseTexture = tex;
         TowerCore.material = brickMat;
-        // Move the sphere upward 1/2 of its height.
-        TowerCore.position.z = 10;
         var keyheld = false;
         // Setup
         this._scene.actionManager = new BABYLON.ActionManager(this._scene);
@@ -37,7 +35,7 @@ var Game = /** @class */ (function () {
             trigger: BABYLON.ActionManager.OnKeyUpTrigger,
             parameter: 'a'
         }, function () { keyheld = false; }));
-        this._scene.onBeforeRenderObservable.add(this.update);
+        this._scene.onBeforeRenderObservable.add(function () { return _this.update(); });
     };
     Game.prototype.doRender = function () {
         var _this = this;
@@ -54,6 +52,9 @@ var Game = /** @class */ (function () {
     Game.prototype.update = function () {
         //TowerCore.addRotation(0,0.01,0);
         //if(keyheld) TowerCore.position.x -= 0.1;
+        if (this._camera != null) {
+            this._camera.alpha += 0.01;
+        }
     };
     return Game;
 }());

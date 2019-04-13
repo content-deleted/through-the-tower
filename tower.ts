@@ -1,11 +1,11 @@
 ///<reference path="babylon.d.ts" />
 
 class Game {
-  private _canvas: HTMLCanvasElement;
-  private _engine: BABYLON.Engine;
-  private _scene: BABYLON.Scene;
-  private _camera: BABYLON.FreeCamera;
-  private _light: BABYLON.Light;
+  public _canvas: HTMLCanvasElement;
+  public _engine: BABYLON.Engine;
+  public _scene: BABYLON.Scene;
+  public _camera: BABYLON.ArcRotateCamera;
+  public _light: BABYLON.Light;
 
   constructor(canvasElement : string) {
     // Create canvas and engine.
@@ -17,14 +17,12 @@ class Game {
     // Create a basic BJS Scene object.
     this._scene = new BABYLON.Scene(this._engine);
 
-    // Create a FreeCamera, and set its position to (x:0, y:5, z:-10).
-    this._camera = new BABYLON.FreeCamera('camera1', new BABYLON.Vector3(0, 5,-10), this._scene);
-
-    // Target the camera to scene origin.
-    this._camera.setTarget(BABYLON.Vector3.Zero());
+    // Parameters: alpha, beta, radius, target position, scene
+    this._camera = new BABYLON.ArcRotateCamera("mainCam", 0, Math.PI/2, 30, new BABYLON.Vector3(0,0,0), this._scene);
 
     // Attach the camera to the canvas.
     this._camera.attachControl(this._canvas, false);
+    this._camera.inputs.clear();
 
     // Create a basic light, aiming 0,1,0 - meaning, to the sky.
     this._light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0,1,0), this._scene);
@@ -33,13 +31,10 @@ class Game {
     let TowerCore = BABYLON.MeshBuilder.CreateCylinder("TowerCore",{height: 40, diameter: 20, tessellation: 8, subdivisions: 5}, this._scene);
     let brickMat = new BABYLON.StandardMaterial("brick", this._scene);
     let tex = new BABYLON.Texture("./Assets/Textures/brick.png", this._scene);
-    tex.uScale = 10;
-    tex.vScale = 10;
+    tex.uScale = 10; tex.vScale = 10;
     brickMat.diffuseTexture = tex;
     TowerCore.material = brickMat;
-    
-    // Move the sphere upward 1/2 of its height.
-    TowerCore.position.z = 10;
+
     let keyheld : Boolean = false;
 
     // Setup
@@ -63,7 +58,7 @@ class Game {
       )
     );
 
-    this._scene.onBeforeRenderObservable.add(this.update);
+    this._scene.onBeforeRenderObservable.add(()=>this.update());
   }
 
   doRender() : void {
@@ -83,6 +78,9 @@ class Game {
   update() : void {
     //TowerCore.addRotation(0,0.01,0);
     //if(keyheld) TowerCore.position.x -= 0.1;
+    if(this._camera != null) {
+      this._camera.alpha += 0.01;
+    }
   }
 }
 
