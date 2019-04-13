@@ -30,15 +30,40 @@ class Game {
     this._light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0,1,0), this._scene);
 
     // Create a built-in "sphere" shape; with 16 segments and diameter of 2.
-    let sphere = BABYLON.MeshBuilder.CreateSphere('sphere',
-      {segments: 16, diameter: 2}, this._scene);
-
+    let TowerCore = BABYLON.MeshBuilder.CreateCylinder("TowerCore",{height: 40, diameter: 20, tessellation: 8, subdivisions: 5}, this._scene);
+    let brickMat = new BABYLON.StandardMaterial("brick", this._scene);
+    let tex = new BABYLON.Texture("./Assets/Textures/brick.png", this._scene);
+    tex.uScale = 10;
+    tex.vScale = 10;
+    brickMat.diffuseTexture = tex;
+    TowerCore.material = brickMat;
+    
     // Move the sphere upward 1/2 of its height.
-    sphere.position.y = 1;
+    TowerCore.position.z = 10;
+    let keyheld : Boolean = false;
 
-    // Create a built-in "ground" shape.
-    let ground = BABYLON.MeshBuilder.CreateGround('ground',
-                 {width: 6, height: 6, subdivisions: 2}, this._scene);
+    // Setup
+    this._scene.actionManager = new BABYLON.ActionManager(this._scene);
+    this._scene.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(
+          {
+              trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+              parameter: 'a'
+          },
+          function () { keyheld = true; }
+      )
+    );
+    this._scene.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(
+          {
+              trigger: BABYLON.ActionManager.OnKeyUpTrigger,
+              parameter: 'a'
+          },
+          function () { keyheld = false; }
+      )
+    );
+
+    this._scene.onBeforeRenderObservable.add(this.update);
   }
 
   doRender() : void {
@@ -52,6 +77,13 @@ class Game {
         this._engine.resize();
     });
   }
+
+
+  // runs before render
+  update() : void {
+    //TowerCore.addRotation(0,0.01,0);
+    //if(keyheld) TowerCore.position.x -= 0.1;
+  }
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -64,3 +96,16 @@ window.addEventListener('DOMContentLoaded', () => {
   // Start render loop.
   game.doRender();
 });
+
+
+
+
+
+/*
+we want to use this later to render holes in the tower
+var sphereCSG = BABYLON.CSG.FromMesh(sphere);
+var cylinderCSG = BABYLON.CSG.FromMesh(cylinder);
+sphereCSG.subtractInPlace(cylinderCSG);
+var ball = sphereCSG.toMesh("test", sphere.material, scene, false);
+
+*/
