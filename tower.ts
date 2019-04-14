@@ -6,6 +6,8 @@ class Game {
   public _scene: BABYLON.Scene;
   public _camera: BABYLON.ArcRotateCamera;
   public _light: BABYLON.Light;
+  public _playerInput: PlayerInput;
+  public _playerSprite: BABYLON.Sprite;
 
   constructor(canvasElement : string) {
     // Create canvas and engine.
@@ -39,27 +41,10 @@ class Game {
 
     // Setup
     this._scene.actionManager = new BABYLON.ActionManager(this._scene);
-    this._scene.actionManager.registerAction(
-      new BABYLON.ExecuteCodeAction(
-          {
-              trigger: BABYLON.ActionManager.OnKeyDownTrigger,
-              parameter: 'a'
-          },
-          function () { keyheld = true; }
-      )
-    );
-    this._scene.actionManager.registerAction(
-      new BABYLON.ExecuteCodeAction(
-          {
-              trigger: BABYLON.ActionManager.OnKeyUpTrigger,
-              parameter: 'a'
-          },
-          function () { keyheld = false; }
-      )
-    );
+    this._playerInput = new PlayerInput(this._scene);
 
     //setup pp
-    var postProcess = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);
+    let postProcess = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);
     let pallete = new BABYLON.Texture("./Assets/Effects/palette.png", this._scene);
     postProcess.onApply = function (effect) {
         effect.setFloat2("screenSize", postProcess.width, postProcess.height);
@@ -69,6 +54,23 @@ class Game {
 
     this.startCloud();
     
+    //
+    let spriteManagerPlayer = new BABYLON.SpriteManager("playerManager","Assets/Sprites/Player.png", 4, {width: 64, height: 64}, this._scene);
+    this._playerSprite = new BABYLON.Sprite("player", spriteManagerPlayer);
+    this._playerSprite.position = new BABYLON.Vector3(0,5, 10);
+    this._playerSprite.size *= 5;
+    this._playerSprite.playAnimation(0, 3, true,100,() => {});
+
+    /*this._scene.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(
+          BABYLON.ActionManager.OnEveryFrameTrigger,
+          () => {
+              let dir = this._playerInput.getDirection();
+              player.position.x += dir.x;
+              player.position.z += dir.y;
+          }
+      )
+    );*/
 
     //setup update
     this._scene.onBeforeRenderObservable.add(()=>this.update());
@@ -91,6 +93,9 @@ class Game {
   update() : void {
     //TowerCore.addRotation(0,0.01,0);
     //if(keyheld) TowerCore.position.x -= 0.1;
+    let dir = this._playerInput.getDirection();
+    this._playerSprite.position.x += dir.x;
+    this._playerSprite.position.z += dir.y;
     if(this._camera != null) {
       this._camera.alpha += 0.01;
     }
@@ -144,7 +149,59 @@ window.addEventListener('DOMContentLoaded', () => {
   game.doRender();
 });
 
+class keyInput {
+  public isDown : boolean;
+  public key : string;
+  constructor(key : string, onPress : () => void, onRelease : () => void, scene : BABYLON.Scene) {
+    this.key = key;
+    scene.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(
+          {
+              trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+              parameter: key
+          },
+          ()=> { this.isDown = true; onPress(); }
+      )
+    );
+    scene.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(
+          {
+              trigger: BABYLON.ActionManager.OnKeyUpTrigger,
+              parameter: key
+          },
+          ()=> { this.isDown = false; onRelease(); }
+      )
+    );
+  }
+}
 
+class PlayerInput {
+  public up : keyInput;
+  public down : keyInput;
+  public left : keyInput;
+  public right : keyInput;
+
+  public dash : keyInput;
+  public special : keyInput;
+
+  public getDirection () : BABYLON.Vector2 {
+    
+    let dir = new BABYLON.Vector2(0,0);
+    if(this.up.isDown) dir.y +=1;
+    if(this.down.isDown) dir.y -=1;
+    if(this.left.isDown) dir.x -=1;
+    if(this.right.isDown) dir.x +=1;
+
+    return dir.normalize();
+  }
+
+  constructor(scene : BABYLON.Scene) {
+    this.up = new keyInput('w', ()=>{},()=>{}, scene);
+    this.down = new keyInput('s', ()=>{},()=>{}, scene);
+    this.left = new keyInput('a', ()=>{},()=>{}, scene);
+    this.right = new keyInput('d', ()=>{},()=>{}, scene);
+  }
+}
 
 
 

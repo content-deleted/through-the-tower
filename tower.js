@@ -27,14 +27,7 @@ var Game = /** @class */ (function () {
         var keyheld = false;
         // Setup
         this._scene.actionManager = new BABYLON.ActionManager(this._scene);
-        this._scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
-            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
-            parameter: 'a'
-        }, function () { keyheld = true; }));
-        this._scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
-            trigger: BABYLON.ActionManager.OnKeyUpTrigger,
-            parameter: 'a'
-        }, function () { keyheld = false; }));
+        this._playerInput = new PlayerInput(this._scene);
         //setup pp
         var postProcess = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);
         var pallete = new BABYLON.Texture("./Assets/Effects/palette.png", this._scene);
@@ -44,6 +37,22 @@ var Game = /** @class */ (function () {
             effect.setFloat("colorPrecision", 8);
         };
         this.startCloud();
+        //
+        var spriteManagerPlayer = new BABYLON.SpriteManager("playerManager", "Assets/Sprites/Player.png", 4, { width: 64, height: 64 }, this._scene);
+        this._playerSprite = new BABYLON.Sprite("player", spriteManagerPlayer);
+        this._playerSprite.position = new BABYLON.Vector3(0, 5, 10);
+        this._playerSprite.size *= 5;
+        this._playerSprite.playAnimation(0, 3, true, 100, function () { });
+        /*this._scene.actionManager.registerAction(
+          new BABYLON.ExecuteCodeAction(
+              BABYLON.ActionManager.OnEveryFrameTrigger,
+              () => {
+                  let dir = this._playerInput.getDirection();
+                  player.position.x += dir.x;
+                  player.position.z += dir.y;
+              }
+          )
+        );*/
         //setup update
         this._scene.onBeforeRenderObservable.add(function () { return _this.update(); });
     };
@@ -62,6 +71,9 @@ var Game = /** @class */ (function () {
     Game.prototype.update = function () {
         //TowerCore.addRotation(0,0.01,0);
         //if(keyheld) TowerCore.position.x -= 0.1;
+        var dir = this._playerInput.getDirection();
+        this._playerSprite.position.x += dir.x;
+        this._playerSprite.position.z += dir.y;
         if (this._camera != null) {
             this._camera.alpha += 0.01;
         }
@@ -106,6 +118,42 @@ window.addEventListener('DOMContentLoaded', function () {
     // Start render loop.
     game.doRender();
 });
+var keyInput = /** @class */ (function () {
+    function keyInput(key, onPress, onRelease, scene) {
+        var _this = this;
+        this.key = key;
+        scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
+            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+            parameter: key
+        }, function () { _this.isDown = true; onPress(); }));
+        scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
+            trigger: BABYLON.ActionManager.OnKeyUpTrigger,
+            parameter: key
+        }, function () { _this.isDown = false; onRelease(); }));
+    }
+    return keyInput;
+}());
+var PlayerInput = /** @class */ (function () {
+    function PlayerInput(scene) {
+        this.up = new keyInput('w', function () { }, function () { }, scene);
+        this.down = new keyInput('s', function () { }, function () { }, scene);
+        this.left = new keyInput('a', function () { }, function () { }, scene);
+        this.right = new keyInput('d', function () { }, function () { }, scene);
+    }
+    PlayerInput.prototype.getDirection = function () {
+        var dir = new BABYLON.Vector2(0, 0);
+        if (this.up.isDown)
+            dir.y += 1;
+        if (this.down.isDown)
+            dir.y -= 1;
+        if (this.left.isDown)
+            dir.x -= 1;
+        if (this.right.isDown)
+            dir.x += 1;
+        return dir.normalize();
+    };
+    return PlayerInput;
+}());
 /*
 we want to use this later to render holes in the tower
 var sphereCSG = BABYLON.CSG.FromMesh(sphere);
