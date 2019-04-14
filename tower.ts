@@ -7,12 +7,11 @@ class Game {
   public _light: BABYLON.Light;
   public _playerInput: PlayerInput;
   public _playerSprite: BABYLON.Sprite;
-  public _pallet: BABYLON.Texture[];
-  public _currentPallet: number;
 
   constructor(canvasElement : string) {
     // Create canvas and engine.
     this._canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
+    console.log("StartingMainGameLoop");
     this._engine = new BABYLON.Engine(this._canvas, true);
   }
 
@@ -182,8 +181,8 @@ class PlayerInput {
   public special : keyInput;
 
   public getDirection () : BABYLON.Vector2 {
-    
     let dir = new BABYLON.Vector2(0,0);
+    console.log(dir);
     if(this.up.isDown) dir.y +=1;
     if(this.down.isDown) dir.y -=1;
     if(this.left.isDown) dir.x -=1;

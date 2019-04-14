@@ -32,14 +32,18 @@ var Title = /** @class */ (function () {
         this._scene.actionManager = new BABYLON.ActionManager(this._scene);
         // setup fade manager
         this._fade = new fadeManager(0.005, function () {
+            _this._engine.runRenderLoop(function () { });
+            _this._engine.stopRenderLoop();
             _this._scene.dispose();
             _this._engine.dispose();
             // Create the game using the 'renderCanvas'.
+            //setTimeout(function() {
             var game = new Game('renderCanvas');
             // Create the scene.
             game.createScene();
             // Start render loop.
             game.doRender();
+            // }, 1000);
         });
         //setup pp
         var palletteEffect = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);

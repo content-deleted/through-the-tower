@@ -49,17 +49,22 @@ class Title {
 
     // setup fade manager
     this._fade = new fadeManager(0.005, ()=> {
+      this._engine.runRenderLoop(()=>{});
+      this._engine.stopRenderLoop();
+      
       this._scene.dispose();
       this._engine.dispose();
       
       // Create the game using the 'renderCanvas'.
-      let game = new Game('renderCanvas');
-
-      // Create the scene.
-      game.createScene();
-
-      // Start render loop.
-      game.doRender();
+      
+      
+      //setTimeout(function() {
+          let game = new Game('renderCanvas');
+          // Create the scene.
+          game.createScene();
+          // Start render loop.
+          game.doRender();
+       // }, 1000);
     });
 
     //setup pp

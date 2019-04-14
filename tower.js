@@ -3,6 +3,7 @@ var Game = /** @class */ (function () {
     function Game(canvasElement) {
         // Create canvas and engine.
         this._canvas = document.getElementById(canvasElement);
+        console.log("StartingMainGameLoop");
         this._engine = new BABYLON.Engine(this._canvas, true);
     }
     Game.prototype.createScene = function () {
@@ -139,6 +140,7 @@ var PlayerInput = /** @class */ (function () {
     }
     PlayerInput.prototype.getDirection = function () {
         var dir = new BABYLON.Vector2(0, 0);
+        console.log(dir);
         if (this.up.isDown)
             dir.y += 1;
         if (this.down.isDown)
