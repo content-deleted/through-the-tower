@@ -1,8 +1,8 @@
 ///<reference path="babylon.d.ts" />
 
 //application data
-var pallet = [];
-var currentPallet=0;
+var palletes: BABYLON.Texture[] = [];
+var currentPallet: number =0;
 
 class Title {
   public _canvas: HTMLCanvasElement;
@@ -12,6 +12,7 @@ class Title {
   public _playerSprite: BABYLON.Sprite;
   
   public _fade: fadeManager;
+  public _TitleSprites: BABYLON.Sprite[] = [];
   
 
   constructor(canvasElement : string) {
@@ -55,24 +56,27 @@ class Title {
       this._scene.dispose();
       this._engine.dispose();
       
-      // Create the game using the 'renderCanvas'.
-      
-      
-      setTimeout(function() {
+      palletes.forEach( p => p.dispose());
+      palletes = [];
+      //setTimeout(function() {
           let game = new Game('renderCanvas');
           // Create the scene.
           game.createScene();
           // Start render loop.
           game.doRender();
-       }, 500);
+       //}, 500);
     });
 
     //setup pp
     let palletteEffect = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);
-    let pallete = new BABYLON.Texture("./Assets/Effects/palette.png", this._scene);
+    palletes.push(new BABYLON.Texture("./Assets/Effects/paletteGB.png", this._scene));
+    palletes.push(new BABYLON.Texture("./Assets/Effects/paletteBerry.png", this._scene));
+    palletes.push(new BABYLON.Texture("./Assets/Effects/paletteLolipop.png", this._scene));
+    palletes.push(new BABYLON.Texture("./Assets/Effects/paletteSepia.png", this._scene));
+    
     palletteEffect.onApply = function (effect) {
         effect.setFloat2("screenSize", palletteEffect.width, palletteEffect.height);
-        effect.setTexture("pallete", pallete);
+        effect.setTexture("pallete", palletes[currentPallet]);
         effect.setFloat("colorPrecision", 8);
     };
 
@@ -96,6 +100,17 @@ class Title {
       )
     );
 
+    // Generate title text
+    let spriteManagerTitle = new BABYLON.SpriteManager("playerManager","Assets/Sprites/Title.png", 26, {width: 64, height: 64}, this._scene);
+    let indexes : string[] = ['T','O','W','E','R','H','U','G',' '];
+    let createWords = (letter: string)=> {
+        let sprit = new BABYLON.Sprite("Letter", spriteManagerTitle);
+        sprit.cellIndex = indexes.indexOf(letter);
+        sprit.size = 4;
+        this._TitleSprites.push(sprit);
+    }
+
+    ['T','H','R','O','U','G','H',' ',' ','T','H','E',' ',' ','T','O','W','E','R',' ',' ',' ',' '].forEach((l)=> createWords(l));
     //setup update
     this._scene.onBeforeRenderObservable.add(()=>this.update());
   }
@@ -117,6 +132,11 @@ class Title {
   update() : void {
     if(this._camera != null) {
       this._camera.alpha += 0.01;
+      
+      // update the letters
+      this._TitleSprites.forEach((letter, index) =>{
+        letter.position = generatePointOnCircle(2*Math.PI/this._TitleSprites.length * index, 13, 2 + Math.sin(this._camera.alpha*6 + index));
+      });
     }
     this._fade.update();
   }
@@ -162,6 +182,10 @@ class Title {
 window.addEventListener('DOMContentLoaded', () => {
   // Create the game using the 'renderCanvas'.
   let title = new Title('renderCanvas');
+
+  document.addEventListener('keydown', function(event){
+    if(event.key === '1') currentPallet = (currentPallet+1)%palletes.length;
+  } );
 
   // Create the scene.
   title.createScene();

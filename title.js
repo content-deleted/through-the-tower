@@ -1,9 +1,10 @@
 ///<reference path="babylon.d.ts" />
 //application data
-var pallet = [];
+var palletes = [];
 var currentPallet = 0;
 var Title = /** @class */ (function () {
     function Title(canvasElement) {
+        this._TitleSprites = [];
         // Create canvas and engine.
         this._canvas = document.getElementById(canvasElement);
         this._engine = new BABYLON.Engine(this._canvas, true);
@@ -36,21 +37,25 @@ var Title = /** @class */ (function () {
             _this._engine.stopRenderLoop();
             _this._scene.dispose();
             _this._engine.dispose();
-            // Create the game using the 'renderCanvas'.
-            setTimeout(function () {
-                var game = new Game('renderCanvas');
-                // Create the scene.
-                game.createScene();
-                // Start render loop.
-                game.doRender();
-            }, 500);
+            palletes.forEach(function (p) { return p.dispose(); });
+            palletes = [];
+            //setTimeout(function() {
+            var game = new Game('renderCanvas');
+            // Create the scene.
+            game.createScene();
+            // Start render loop.
+            game.doRender();
+            //}, 500);
         });
         //setup pp
         var palletteEffect = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);
-        var pallete = new BABYLON.Texture("./Assets/Effects/palette.png", this._scene);
+        palletes.push(new BABYLON.Texture("./Assets/Effects/paletteGB.png", this._scene));
+        palletes.push(new BABYLON.Texture("./Assets/Effects/paletteBerry.png", this._scene));
+        palletes.push(new BABYLON.Texture("./Assets/Effects/paletteLolipop.png", this._scene));
+        palletes.push(new BABYLON.Texture("./Assets/Effects/paletteSepia.png", this._scene));
         palletteEffect.onApply = function (effect) {
             effect.setFloat2("screenSize", palletteEffect.width, palletteEffect.height);
-            effect.setTexture("pallete", pallete);
+            effect.setTexture("pallete", palletes[currentPallet]);
             effect.setFloat("colorPrecision", 8);
         };
         var Fade = new BABYLON.PostProcess("fade", "./Assets/Effects/fade", ["Fade"], null, 1, this._camera);
@@ -64,6 +69,16 @@ var Title = /** @class */ (function () {
         }, function () {
             _this._fade.running = true;
         }));
+        // Generate title text
+        var spriteManagerTitle = new BABYLON.SpriteManager("playerManager", "Assets/Sprites/Title.png", 26, { width: 64, height: 64 }, this._scene);
+        var indexes = ['T', 'O', 'W', 'E', 'R', 'H', 'U', 'G', ' '];
+        var createWords = function (letter) {
+            var sprit = new BABYLON.Sprite("Letter", spriteManagerTitle);
+            sprit.cellIndex = indexes.indexOf(letter);
+            sprit.size = 4;
+            _this._TitleSprites.push(sprit);
+        };
+        ['T', 'H', 'R', 'O', 'U', 'G', 'H', ' ', ' ', 'T', 'H', 'E', ' ', ' ', 'T', 'O', 'W', 'E', 'R', ' ', ' ', ' ', ' '].forEach(function (l) { return createWords(l); });
         //setup update
         this._scene.onBeforeRenderObservable.add(function () { return _this.update(); });
     };
@@ -80,8 +95,13 @@ var Title = /** @class */ (function () {
     };
     // runs before render
     Title.prototype.update = function () {
+        var _this = this;
         if (this._camera != null) {
             this._camera.alpha += 0.01;
+            // update the letters
+            this._TitleSprites.forEach(function (letter, index) {
+                letter.position = generatePointOnCircle(2 * Math.PI / _this._TitleSprites.length * index, 13, 2 + Math.sin(_this._camera.alpha * 6 + index));
+            });
         }
         this._fade.update();
     };
@@ -121,6 +141,10 @@ var Title = /** @class */ (function () {
 window.addEventListener('DOMContentLoaded', function () {
     // Create the game using the 'renderCanvas'.
     var title = new Title('renderCanvas');
+    document.addEventListener('keydown', function (event) {
+        if (event.key === '1')
+            currentPallet = (currentPallet + 1) % palletes.length;
+    });
     // Create the scene.
     title.createScene();
     // Start render loop.

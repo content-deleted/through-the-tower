@@ -45,10 +45,14 @@ class Game {
 
     //setup pp
     let palletteEffect = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);
-    let pallete = new BABYLON.Texture("./Assets/Effects/palette.png", this._scene);
+    palletes.push(new BABYLON.Texture("./Assets/Effects/paletteGB.png", this._scene));
+    palletes.push(new BABYLON.Texture("./Assets/Effects/paletteBerry.png", this._scene));
+    palletes.push(new BABYLON.Texture("./Assets/Effects/paletteLolipop.png", this._scene));
+    palletes.push(new BABYLON.Texture("./Assets/Effects/paletteSepia.png", this._scene));
+    
     palletteEffect.onApply = function (effect) {
         effect.setFloat2("screenSize", palletteEffect.width, palletteEffect.height);
-        effect.setTexture("pallete", pallete);
+        effect.setTexture("pallete", palletes[currentPallet]);
         effect.setFloat("colorPrecision", 8);
     };
 
@@ -102,7 +106,7 @@ class Game {
   }
 
   startCloud(): void {
-    let fogTexture : BABYLON.Texture = new BABYLON.Texture("https://raw.githubusercontent.com/aWeirdo/Babylon.js/master/smoke_15.png", this._scene);
+    let fogTexture : BABYLON.Texture = new BABYLON.Texture("./Assets/Textures/smoke_15.png", this._scene);
     let particleSystem;
     particleSystem = new BABYLON.ParticleSystem("particles", 2500 , this._scene);
     particleSystem.manualEmitCount = particleSystem.getCapacity();
@@ -112,7 +116,7 @@ class Game {
 
     particleSystem.particleTexture = fogTexture.clone();
     var fountain = BABYLON.Mesh.CreateBox("foutain", .01, this._scene);
-    fountain.position.y = -5;
+    fountain.position.y = -10;
     fountain.visibility = 0;
     particleSystem.emitter = fountain;
     
