@@ -1,11 +1,14 @@
 ///<reference path="babylon.d.ts" />
-var Game = /** @class */ (function () {
-    function Game(canvasElement) {
+//application data
+var pallet = [];
+var currentPallet = 0;
+var Title = /** @class */ (function () {
+    function Title(canvasElement) {
         // Create canvas and engine.
         this._canvas = document.getElementById(canvasElement);
         this._engine = new BABYLON.Engine(this._canvas, true);
     }
-    Game.prototype.createScene = function () {
+    Title.prototype.createScene = function () {
         var _this = this;
         // Create a basic BJS Scene object.
         this._scene = new BABYLON.Scene(this._engine);
@@ -15,7 +18,7 @@ var Game = /** @class */ (function () {
         this._camera.attachControl(this._canvas, false);
         this._camera.inputs.clear();
         // Create a basic light, aiming 0,1,0 - meaning, to the sky.
-        this._light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 1, 0), this._scene);
+        var light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 1, 0), this._scene);
         // Create a built-in "sphere" shape; with 16 segments and diameter of 2.
         var TowerCore = BABYLON.MeshBuilder.CreateCylinder("TowerCore", { height: 40, diameter: 20, tessellation: 8, subdivisions: 5 }, this._scene);
         var brickMat = new BABYLON.StandardMaterial("brick", this._scene);
@@ -27,7 +30,17 @@ var Game = /** @class */ (function () {
         var keyheld = false;
         // Setup
         this._scene.actionManager = new BABYLON.ActionManager(this._scene);
-        this._playerInput = new PlayerInput(this._scene);
+        // setup fade manager
+        this._fade = new fadeManager(0.005, function () {
+            _this._scene.dispose();
+            _this._engine.dispose();
+            // Create the game using the 'renderCanvas'.
+            var game = new Game('renderCanvas');
+            // Create the scene.
+            game.createScene();
+            // Start render loop.
+            game.doRender();
+        });
         //setup pp
         var palletteEffect = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);
         var pallete = new BABYLON.Texture("./Assets/Effects/palette.png", this._scene);
@@ -37,31 +50,20 @@ var Game = /** @class */ (function () {
             effect.setFloat("colorPrecision", 8);
         };
         var Fade = new BABYLON.PostProcess("fade", "./Assets/Effects/fade", ["Fade"], null, 1, this._camera);
-        var brightAmount = 1;
         Fade.onApply = function (effect) {
-            effect.setFloat("Fade", brightAmount);
+            effect.setFloat("Fade", _this._fade.current);
         };
         this.startCloud();
-        //
-        var spriteManagerPlayer = new BABYLON.SpriteManager("playerManager", "Assets/Sprites/Player.png", 4, { width: 64, height: 64 }, this._scene);
-        this._playerSprite = new BABYLON.Sprite("player", spriteManagerPlayer);
-        this._playerSprite.position = new BABYLON.Vector3(0, 5, 10);
-        this._playerSprite.size *= 5;
-        this._playerSprite.playAnimation(0, 3, true, 100, function () { });
-        /*this._scene.actionManager.registerAction(
-          new BABYLON.ExecuteCodeAction(
-              BABYLON.ActionManager.OnEveryFrameTrigger,
-              () => {
-                  let dir = this._playerInput.getDirection();
-                  player.position.x += dir.x;
-                  player.position.z += dir.y;
-              }
-          )
-        );*/
+        this._scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
+            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+            parameter: "j"
+        }, function () {
+            _this._fade.running = true;
+        }));
         //setup update
         this._scene.onBeforeRenderObservable.add(function () { return _this.update(); });
     };
-    Game.prototype.doRender = function () {
+    Title.prototype.doRender = function () {
         var _this = this;
         // Run the render loop.
         this._engine.runRenderLoop(function () {
@@ -73,24 +75,21 @@ var Game = /** @class */ (function () {
         });
     };
     // runs before render
-    Game.prototype.update = function () {
-        //TowerCore.addRotation(0,0.01,0);
-        //if(keyheld) TowerCore.position.x -= 0.1;
-        var dir = this._playerInput.getDirection();
-        this._playerSprite.position.x += dir.x;
-        this._playerSprite.position.z += dir.y;
+    Title.prototype.update = function () {
         if (this._camera != null) {
             this._camera.alpha += 0.01;
         }
+        this._fade.update();
     };
-    Game.prototype.startCloud = function () {
-        var fogTexture = new BABYLON.Texture("https://raw.githubusercontent.com/aWeirdo/Babylon.js/master/smoke_15.png", this._scene);
+    Title.prototype.startCloud = function () {
+        var fogTexture = new BABYLON.Texture("./Assets/Textures/smoke_15.png", this._scene);
         var particleSystem;
         particleSystem = new BABYLON.ParticleSystem("particles", 2500, this._scene);
         particleSystem.manualEmitCount = particleSystem.getCapacity();
         particleSystem.minEmitBox = new BABYLON.Vector3(-25, 2, -25); // Starting all from
         particleSystem.maxEmitBox = new BABYLON.Vector3(25, 2, 25); // To...
         particleSystem.particleTexture = fogTexture.clone();
+        // creates a bounding box of particles 
         var fountain = BABYLON.Mesh.CreateBox("foutain", .01, this._scene);
         fountain.position.y = -5;
         fountain.visibility = 0;
@@ -113,49 +112,30 @@ var Game = /** @class */ (function () {
         particleSystem.updateSpeed = 0.005;
         particleSystem.start();
     };
-    return Game;
+    return Title;
 }());
-var keyInput = /** @class */ (function () {
-    function keyInput(key, onPress, onRelease, scene) {
-        var _this = this;
-        this.key = key;
-        scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
-            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
-            parameter: key
-        }, function () { _this.isDown = true; onPress(); }));
-        scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
-            trigger: BABYLON.ActionManager.OnKeyUpTrigger,
-            parameter: key
-        }, function () { _this.isDown = false; onRelease(); }));
+window.addEventListener('DOMContentLoaded', function () {
+    // Create the game using the 'renderCanvas'.
+    var title = new Title('renderCanvas');
+    // Create the scene.
+    title.createScene();
+    // Start render loop.
+    title.doRender();
+});
+var fadeManager = /** @class */ (function () {
+    function fadeManager(increment, faded) {
+        this.running = false;
+        this.current = 1.0;
+        this.increment = increment;
+        this.callback = faded;
     }
-    return keyInput;
-}());
-var PlayerInput = /** @class */ (function () {
-    function PlayerInput(scene) {
-        this.up = new keyInput('w', function () { }, function () { }, scene);
-        this.down = new keyInput('s', function () { }, function () { }, scene);
-        this.left = new keyInput('a', function () { }, function () { }, scene);
-        this.right = new keyInput('d', function () { }, function () { }, scene);
-    }
-    PlayerInput.prototype.getDirection = function () {
-        var dir = new BABYLON.Vector2(0, 0);
-        if (this.up.isDown)
-            dir.y += 1;
-        if (this.down.isDown)
-            dir.y -= 1;
-        if (this.left.isDown)
-            dir.x -= 1;
-        if (this.right.isDown)
-            dir.x += 1;
-        return dir.normalize();
+    fadeManager.prototype.update = function () {
+        if (this.running && this.current >= 0) {
+            this.current -= this.increment;
+            if (this.current < 0) {
+                this.callback();
+            }
+        }
     };
-    return PlayerInput;
+    return fadeManager;
 }());
-/*
-we want to use this later to render holes in the tower
-var sphereCSG = BABYLON.CSG.FromMesh(sphere);
-var cylinderCSG = BABYLON.CSG.FromMesh(cylinder);
-sphereCSG.subtractInPlace(cylinderCSG);
-var ball = sphereCSG.toMesh("test", sphere.material, scene, false);
-
-*/ 

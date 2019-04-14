@@ -1,14 +1,18 @@
 ///<reference path="babylon.d.ts" />
-class Game {
+
+//application data
+var pallet = [];
+var currentPallet=0;
+
+class Title {
   public _canvas: HTMLCanvasElement;
   public _engine: BABYLON.Engine;
   public _scene: BABYLON.Scene;
   public _camera: BABYLON.ArcRotateCamera;
-  public _light: BABYLON.Light;
-  public _playerInput: PlayerInput;
   public _playerSprite: BABYLON.Sprite;
-  public _pallet: BABYLON.Texture[];
-  public _currentPallet: number;
+  
+  public _fade: fadeManager;
+  
 
   constructor(canvasElement : string) {
     // Create canvas and engine.
@@ -28,7 +32,7 @@ class Game {
     this._camera.inputs.clear();
 
     // Create a basic light, aiming 0,1,0 - meaning, to the sky.
-    this._light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0,1,0), this._scene);
+    let light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0,1,0), this._scene);
 
     // Create a built-in "sphere" shape; with 16 segments and diameter of 2.
     let TowerCore = BABYLON.MeshBuilder.CreateCylinder("TowerCore",{height: 40, diameter: 20, tessellation: 8, subdivisions: 5}, this._scene);
@@ -42,7 +46,21 @@ class Game {
 
     // Setup
     this._scene.actionManager = new BABYLON.ActionManager(this._scene);
-    this._playerInput = new PlayerInput(this._scene);
+
+    // setup fade manager
+    this._fade = new fadeManager(0.005, ()=> {
+      this._scene.dispose();
+      this._engine.dispose();
+      
+      // Create the game using the 'renderCanvas'.
+      let game = new Game('renderCanvas');
+
+      // Create the scene.
+      game.createScene();
+
+      // Start render loop.
+      game.doRender();
+    });
 
     //setup pp
     let palletteEffect = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);
@@ -54,31 +72,24 @@ class Game {
     };
 
     let Fade = new BABYLON.PostProcess("fade", "./Assets/Effects/fade", ["Fade"], null, 1, this._camera);
-    let brightAmount=1;
+
     Fade.onApply = (effect) => {
-        effect.setFloat("Fade", brightAmount);
+        effect.setFloat("Fade", this._fade.current);
     };
 
     this.startCloud();
     
-    //
-    let spriteManagerPlayer = new BABYLON.SpriteManager("playerManager","Assets/Sprites/Player.png", 4, {width: 64, height: 64}, this._scene);
-    
-    this._playerSprite = new BABYLON.Sprite("player", spriteManagerPlayer);
-    this._playerSprite.position = new BABYLON.Vector3(0,5, 10);
-    this._playerSprite.size *= 5;
-    this._playerSprite.playAnimation(0, 3, true,100,() => {});
-
-    /*this._scene.actionManager.registerAction(
+    this._scene.actionManager.registerAction(
       new BABYLON.ExecuteCodeAction(
-          BABYLON.ActionManager.OnEveryFrameTrigger,
-          () => {
-              let dir = this._playerInput.getDirection();
-              player.position.x += dir.x;
-              player.position.z += dir.y;
-          }
+        {
+            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+            parameter: "j"
+        },
+        () => {
+          this._fade.running=true;
+        }
       )
-    );*/
+    );
 
     //setup update
     this._scene.onBeforeRenderObservable.add(()=>this.update());
@@ -99,18 +110,14 @@ class Game {
 
   // runs before render
   update() : void {
-    //TowerCore.addRotation(0,0.01,0);
-    //if(keyheld) TowerCore.position.x -= 0.1;
-    let dir = this._playerInput.getDirection();
-    this._playerSprite.position.x += dir.x;
-    this._playerSprite.position.z += dir.y;
     if(this._camera != null) {
       this._camera.alpha += 0.01;
     }
+    this._fade.update();
   }
 
   startCloud(): void {
-    let fogTexture : BABYLON.Texture = new BABYLON.Texture("https://raw.githubusercontent.com/aWeirdo/Babylon.js/master/smoke_15.png", this._scene);
+    let fogTexture : BABYLON.Texture = new BABYLON.Texture("./Assets/Textures/smoke_15.png", this._scene);
     let particleSystem;
     particleSystem = new BABYLON.ParticleSystem("particles", 2500 , this._scene);
     particleSystem.manualEmitCount = particleSystem.getCapacity();
@@ -119,6 +126,7 @@ class Game {
     
 
     particleSystem.particleTexture = fogTexture.clone();
+    // creates a bounding box of particles 
     var fountain = BABYLON.Mesh.CreateBox("foutain", .01, this._scene);
     fountain.position.y = -5;
     fountain.visibility = 0;
@@ -146,67 +154,33 @@ class Game {
 
 }
 
-class keyInput {
-  public isDown : boolean;
-  public key : string;
-  constructor(key : string, onPress : () => void, onRelease : () => void, scene : BABYLON.Scene) {
-    this.key = key;
-    scene.actionManager.registerAction(
-      new BABYLON.ExecuteCodeAction(
-          {
-              trigger: BABYLON.ActionManager.OnKeyDownTrigger,
-              parameter: key
-          },
-          ()=> { this.isDown = true; onPress(); }
-      )
-    );
-    scene.actionManager.registerAction(
-      new BABYLON.ExecuteCodeAction(
-          {
-              trigger: BABYLON.ActionManager.OnKeyUpTrigger,
-              parameter: key
-          },
-          ()=> { this.isDown = false; onRelease(); }
-      )
-    );
+window.addEventListener('DOMContentLoaded', () => {
+  // Create the game using the 'renderCanvas'.
+  let title = new Title('renderCanvas');
+
+  // Create the scene.
+  title.createScene();
+
+  // Start render loop.
+  title.doRender();
+});
+
+
+class fadeManager {
+  public running : boolean = false;
+  public current = 1.0;
+  public increment: number;
+  public callback;
+  constructor(increment: number, faded: () => void) {
+    this.increment = increment;
+    this.callback = faded;
+  }
+  public update () {
+    if( this.running && this.current >= 0) {
+      this.current -= this.increment;
+      if(this.current<0){
+        this.callback();
+      }
+    }
   }
 }
-
-class PlayerInput {
-  public up : keyInput;
-  public down : keyInput;
-  public left : keyInput;
-  public right : keyInput;
-
-  public dash : keyInput;
-  public special : keyInput;
-
-  public getDirection () : BABYLON.Vector2 {
-    
-    let dir = new BABYLON.Vector2(0,0);
-    if(this.up.isDown) dir.y +=1;
-    if(this.down.isDown) dir.y -=1;
-    if(this.left.isDown) dir.x -=1;
-    if(this.right.isDown) dir.x +=1;
-
-    return dir.normalize();
-  }
-
-  constructor(scene : BABYLON.Scene) {
-    this.up = new keyInput('w', ()=>{},()=>{}, scene);
-    this.down = new keyInput('s', ()=>{},()=>{}, scene);
-    this.left = new keyInput('a', ()=>{},()=>{}, scene);
-    this.right = new keyInput('d', ()=>{},()=>{}, scene);
-  }
-}
-
-
-
-/*
-we want to use this later to render holes in the tower
-var sphereCSG = BABYLON.CSG.FromMesh(sphere);
-var cylinderCSG = BABYLON.CSG.FromMesh(cylinder);
-sphereCSG.subtractInPlace(cylinderCSG);
-var ball = sphereCSG.toMesh("test", sphere.material, scene, false);
-
-*/
