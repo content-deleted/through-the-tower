@@ -58,13 +58,13 @@ class Title {
       // Create the game using the 'renderCanvas'.
       
       
-      //setTimeout(function() {
+      setTimeout(function() {
           let game = new Game('renderCanvas');
           // Create the scene.
           game.createScene();
           // Start render loop.
           game.doRender();
-       // }, 1000);
+       }, 500);
     });
 
     //setup pp
@@ -188,4 +188,24 @@ class fadeManager {
       }
     }
   }
+}
+
+class towerObject {
+    public position : BABYLON.Vector2;
+    public radius : number;
+    public sprite : BABYLON.Sprite;
+    constructor(position : BABYLON.Vector2, radius : number, sprite : BABYLON.Sprite ) {
+        this.position = position;
+        this.radius = radius;
+        this.sprite = sprite;
+      }
+    public update (){
+        this.sprite.position = generatePointOnCircle(this.position.x % (2*Math.PI), this.radius, 4*(this.position.y % (2*Math.PI)) - 2);
+    }
+}
+
+function generatePointOnCircle (X, radius, y) {
+    let x = Math.cos(X) * radius;
+    let z = Math.sin(X) * radius;
+    return new BABYLON.Vector3(x,y,z);
 }

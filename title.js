@@ -37,13 +37,13 @@ var Title = /** @class */ (function () {
             _this._scene.dispose();
             _this._engine.dispose();
             // Create the game using the 'renderCanvas'.
-            //setTimeout(function() {
-            var game = new Game('renderCanvas');
-            // Create the scene.
-            game.createScene();
-            // Start render loop.
-            game.doRender();
-            // }, 1000);
+            setTimeout(function () {
+                var game = new Game('renderCanvas');
+                // Create the scene.
+                game.createScene();
+                // Start render loop.
+                game.doRender();
+            }, 500);
         });
         //setup pp
         var palletteEffect = new BABYLON.PostProcess("retro", "./Assets/Effects/retroClamp", ["screenSize", "colorPrecision"], ["pallete"], 0.15, this._camera);
@@ -143,3 +143,19 @@ var fadeManager = /** @class */ (function () {
     };
     return fadeManager;
 }());
+var towerObject = /** @class */ (function () {
+    function towerObject(position, radius, sprite) {
+        this.position = position;
+        this.radius = radius;
+        this.sprite = sprite;
+    }
+    towerObject.prototype.update = function () {
+        this.sprite.position = generatePointOnCircle(this.position.x % (2 * Math.PI), this.radius, 4 * (this.position.y % (2 * Math.PI)) - 2);
+    };
+    return towerObject;
+}());
+function generatePointOnCircle(X, radius, y) {
+    var x = Math.cos(X) * radius;
+    var z = Math.sin(X) * radius;
+    return new BABYLON.Vector3(x, y, z);
+}

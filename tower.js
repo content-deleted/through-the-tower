@@ -45,20 +45,10 @@ var Game = /** @class */ (function () {
         this.startCloud();
         //
         var spriteManagerPlayer = new BABYLON.SpriteManager("playerManager", "Assets/Sprites/Player.png", 4, { width: 64, height: 64 }, this._scene);
-        this._playerSprite = new BABYLON.Sprite("player", spriteManagerPlayer);
-        this._playerSprite.position = new BABYLON.Vector3(0, 5, 10);
-        this._playerSprite.size *= 5;
-        this._playerSprite.playAnimation(0, 3, true, 100, function () { });
-        /*this._scene.actionManager.registerAction(
-          new BABYLON.ExecuteCodeAction(
-              BABYLON.ActionManager.OnEveryFrameTrigger,
-              () => {
-                  let dir = this._playerInput.getDirection();
-                  player.position.x += dir.x;
-                  player.position.z += dir.y;
-              }
-          )
-        );*/
+        this._player = new towerObject(new BABYLON.Vector2(0, 0), 14, new BABYLON.Sprite("player", spriteManagerPlayer));
+        //this._player.sprite.position = new BABYLON.Vector3(0,5, 10);
+        this._player.sprite.size *= 5;
+        this._player.sprite.playAnimation(0, 3, true, 100, function () { });
         //setup update
         this._scene.onBeforeRenderObservable.add(function () { return _this.update(); });
     };
@@ -75,13 +65,17 @@ var Game = /** @class */ (function () {
     };
     // runs before render
     Game.prototype.update = function () {
-        //TowerCore.addRotation(0,0.01,0);
-        //if(keyheld) TowerCore.position.x -= 0.1;
         var dir = this._playerInput.getDirection();
-        this._playerSprite.position.x += dir.x;
-        this._playerSprite.position.z += dir.y;
+        this._player.position.x += dir.x / 50;
+        this._player.position.y += dir.y / 50;
+        this._player.update();
+        console.log(this._player.position);
+        console.log(this._player.sprite.position);
         if (this._camera != null) {
-            this._camera.alpha += 0.01;
+            if (this._camera.alpha > this._player.position.x + 0.1)
+                this._camera.alpha -= (this._camera.alpha - this._player.position.x) / 15;
+            else if (this._camera.alpha < this._player.position.x - 0.1)
+                this._camera.alpha -= (this._camera.alpha - this._player.position.x) / 15;
         }
     };
     Game.prototype.startCloud = function () {
@@ -102,7 +96,7 @@ var Game = /** @class */ (function () {
         particleSystem.minSize = 3.5;
         particleSystem.maxSize = 5.0;
         particleSystem.minLifeTime = 9007199254740991;
-        particleSystem.emitRate = 5000;
+        particleSystem.emitRate = 1000;
         particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_STANDARD;
         particleSystem.gravity = new BABYLON.Vector3(0, 0, 0);
         particleSystem.direction1 = new BABYLON.Vector3(0, 0, 0);
@@ -140,7 +134,6 @@ var PlayerInput = /** @class */ (function () {
     }
     PlayerInput.prototype.getDirection = function () {
         var dir = new BABYLON.Vector2(0, 0);
-        console.log(dir);
         if (this.up.isDown)
             dir.y += 1;
         if (this.down.isDown)
