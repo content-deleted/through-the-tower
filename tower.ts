@@ -97,6 +97,19 @@ class Game {
     this._player.sprite.size *= 3;
     this._player.sprite.playAnimation(0, 3, true,100,() => {});
 
+    this._scene.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(
+        {
+            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+            parameter: "j"
+        },
+        () => {
+          this._player.velocity.y = 0.6;
+          console.log("pressed");
+        }
+      )
+    );
+
     //setup update
     this._scene.onBeforeRenderObservable.add(()=>this.update());
   }
@@ -116,21 +129,29 @@ class Game {
 
   // runs before render
   update() : void {
+
+    // player update section
     let dir = this._playerInput.getDirection();
     dir.x *= 0.01;
     dir.y *= 0.4;
     dir.y -= 0.2;//apply gravity
+    dir = dir.add(this._player.velocity);
+    this._player.velocity = this._player.velocity.scale(0.95);
+
     let temp = this._player.getLocalPosition(this._player.position.add(dir));
 
     //update player colider
     this._player.collisionMesh.moveWithCollisions(temp.subtract(this._player.sprite.position));
-
+    
     //update player
     let temp2 = generateCylindricalPoint(this._player.collisionMesh.position);
 
     this._player.position = new BABYLON.Vector2(temp2[0],temp2[2]);
     this._player.update();
+    console.log("2d "+this._player.position);
+    console.log("col "+this._player.collisionMesh.position);
 
+    // Scroll
     this._towerCoreTexture.vOffset += 0.01;
 
     // Camera follow player
@@ -212,6 +233,7 @@ class PlayerInput {
   public right : keyInput;
 
   public dash : keyInput;
+  public jump : keyInput;
   public special : keyInput;
 
   public getDirection () : BABYLON.Vector2 {

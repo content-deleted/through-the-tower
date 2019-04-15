@@ -81,6 +81,11 @@ var Title = /** @class */ (function () {
         ['T', 'H', 'R', 'O', 'U', 'G', 'H', ' ', ' ', 'T', 'H', 'E', ' ', ' ', 'T', 'O', 'W', 'E', 'R', ' ', ' ', ' ', ' '].forEach(function (l) { return createWords(l); });
         //setup update
         this._scene.onBeforeRenderObservable.add(function () { return _this.update(); });
+        // Start music
+        var intro = new BABYLON.Sound("intro", "./Assets/Music/intro.wav", this._scene, null, {
+            loop: true,
+            autoplay: false //change to play 
+        });
     };
     Title.prototype.doRender = function () {
         var _this = this;
@@ -177,6 +182,7 @@ var towerObject = /** @class */ (function () {
         this.collisionMesh.visibility = 0;
         this.update();
         this.collisionMesh.position = this.sprite.position;
+        this.velocity = new BABYLON.Vector2;
     }
     towerObject.prototype.update = function () {
         this.sprite.position = this.getLocalPosition(this.position);

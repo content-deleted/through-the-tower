@@ -113,6 +113,14 @@ class Title {
     ['T','H','R','O','U','G','H',' ',' ','T','H','E',' ',' ','T','O','W','E','R',' ',' ',' ',' '].forEach((l)=> createWords(l));
     //setup update
     this._scene.onBeforeRenderObservable.add(()=>this.update());
+
+    // Start music
+    var intro = new BABYLON.Sound(
+      "intro", "./Assets/Music/intro.wav", this._scene, null, {
+         loop: true, 
+         autoplay: false //change to play 
+      }
+    );
   }
 
   doRender() : void {
@@ -216,6 +224,7 @@ class fadeManager {
 
 class towerObject {
     public position : BABYLON.Vector2;
+    public velocity : BABYLON.Vector2;
     public radius : number;
     public sprite : BABYLON.Sprite;
     public collisionMesh : BABYLON.Mesh;
@@ -228,6 +237,7 @@ class towerObject {
       this.collisionMesh.visibility = 0;
       this.update();
       this.collisionMesh.position = this.sprite.position;
+      this.velocity = new BABYLON.Vector2;
       
     }
     public update (){

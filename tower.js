@@ -70,6 +70,13 @@ var Game = /** @class */ (function () {
         this._player = new towerObject(new BABYLON.Vector2(0, 0), 13, new BABYLON.Sprite("player", spriteManagerPlayer), this._scene);
         this._player.sprite.size *= 3;
         this._player.sprite.playAnimation(0, 3, true, 100, function () { });
+        this._scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
+            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+            parameter: "j"
+        }, function () {
+            _this._player.velocity.y = 0.6;
+            console.log("pressed");
+        }));
         //setup update
         this._scene.onBeforeRenderObservable.add(function () { return _this.update(); });
     };
@@ -90,6 +97,8 @@ var Game = /** @class */ (function () {
         dir.x *= 0.01;
         dir.y *= 0.4;
         dir.y -= 0.2; //apply gravity
+        dir = dir.add(this._player.velocity);
+        this._player.velocity = this._player.velocity.scale(0.9);
         var temp = this._player.getLocalPosition(this._player.position.add(dir));
         //update player colider
         this._player.collisionMesh.moveWithCollisions(temp.subtract(this._player.sprite.position));
