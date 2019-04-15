@@ -93,12 +93,13 @@ var Game = /** @class */ (function () {
     };
     // runs before render
     Game.prototype.update = function () {
+        // player update section
         var dir = this._playerInput.getDirection();
         dir.x *= 0.01;
         dir.y *= 0.4;
         dir.y -= 0.2; //apply gravity
         dir = dir.add(this._player.velocity);
-        this._player.velocity = this._player.velocity.scale(0.9);
+        this._player.velocity = this._player.velocity.scale(0.95);
         var temp = this._player.getLocalPosition(this._player.position.add(dir));
         //update player colider
         this._player.collisionMesh.moveWithCollisions(temp.subtract(this._player.sprite.position));
@@ -106,6 +107,9 @@ var Game = /** @class */ (function () {
         var temp2 = generateCylindricalPoint(this._player.collisionMesh.position);
         this._player.position = new BABYLON.Vector2(temp2[0], temp2[2]);
         this._player.update();
+        console.log("2d " + this._player.position);
+        console.log("col " + this._player.collisionMesh.position);
+        // Scroll
         this._towerCoreTexture.vOffset += 0.01;
         // Camera follow player
         if (this._camera != null) {

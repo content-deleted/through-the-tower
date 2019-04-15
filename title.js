@@ -203,5 +203,7 @@ function generateCylindricalPoint(v) {
     var angle = Math.atan2(v.z, v.x);
     var radius = Math.sqrt(v.x * v.x + v.z * v.z);
     var height = v.y;
+    if (angle < 0)
+        angle = 2 * Math.PI + angle; //dumb correction
     return [angle, radius, height];
 }

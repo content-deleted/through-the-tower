@@ -260,5 +260,6 @@ function generateCylindricalPoint (v : BABYLON.Vector3){
   let angle = Math.atan2(v.z,v.x);
   let radius = Math.sqrt(v.x*v.x + v.z*v.z);
   let height = v.y;
+  if(angle < 0) angle = 2*Math.PI + angle; //dumb correction
   return [angle, radius, height];
 }
