@@ -129,7 +129,7 @@ var Game = /** @class */ (function () {
         this._player.position = new BABYLON.Vector2(temp2[0], temp2[2]);
         this._player.update();
         this._player.grounded = (tempY + dir.y + 0.1 <= this._player.position.y);
-        if (!this._player.grounded && dir.y > 0 && tempY + dir.y > this._player.position.y) {
+        if (!this._player.grounded && dir.y > 0 && tempY + dir.y - 0.1 > this._player.position.y) {
             this._player.velocity.y = 0;
             this._player.position.y -= 0.2;
             this._player.update();
