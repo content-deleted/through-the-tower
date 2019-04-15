@@ -218,13 +218,25 @@ class towerObject {
     public position : BABYLON.Vector2;
     public radius : number;
     public sprite : BABYLON.Sprite;
-    constructor(position : BABYLON.Vector2, radius : number, sprite : BABYLON.Sprite ) {
-        this.position = position;
-        this.radius = radius;
-        this.sprite = sprite;
-      }
+    public collisionMesh : BABYLON.Mesh;
+    constructor(position : BABYLON.Vector2, radius : number, sprite : BABYLON.Sprite, scene : BABYLON.Scene ) {
+      this.position = position;
+      this.radius = radius;
+      this.sprite = sprite;
+      this.collisionMesh = BABYLON.BoxBuilder.CreateBox("BoxCollider",{size: 2}, scene);
+      this.collisionMesh.checkCollisions = true;
+      this.collisionMesh.visibility = 0;
+      this.update();
+      this.collisionMesh.position = this.sprite.position;
+      
+    }
     public update (){
-        this.sprite.position = generatePointOnCircle(this.position.x % (2*Math.PI), this.radius, 4*(this.position.y % (2*Math.PI)) - 2);
+      this.sprite.position = this.getLocalPosition(this.position);
+      this.collisionMesh.position = this.sprite.position;
+      this.collisionMesh.lookAt(generatePointOnCircle(this.position.x % (2*Math.PI), this.radius+2, this.position.y));
+    }
+    public getLocalPosition (pos : BABYLON.Vector2): BABYLON.Vector3 {
+      return generatePointOnCircle(pos.x % (2*Math.PI), this.radius, pos.y);
     }
 }
 
@@ -232,4 +244,11 @@ function generatePointOnCircle (X, radius, y) {
     let x = Math.cos(X) * radius;
     let z = Math.sin(X) * radius;
     return new BABYLON.Vector3(x,y,z);
+}
+
+function generateCylindricalPoint (v : BABYLON.Vector3){
+  let angle = Math.atan2(v.z,v.x);
+  let radius = Math.sqrt(v.x*v.x + v.z*v.z);
+  let height = v.y;
+  return [angle, radius, height];
 }

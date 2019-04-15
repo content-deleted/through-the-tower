@@ -8,6 +8,10 @@ class Game {
   public _playerInput: PlayerInput;
   public _player: towerObject;
 
+  public _towerCore: BABYLON.Mesh;
+  public _towerCoreTexture: BABYLON.Texture;
+  public _towerBlocks: BABYLON.Mesh [];
+
   constructor(canvasElement : string) {
     // Create canvas and engine.
     this._canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
@@ -18,26 +22,48 @@ class Game {
   createScene() : void {
     // Create a basic BJS Scene object.
     this._scene = new BABYLON.Scene(this._engine);
+    //Physics?
+    //this._scene.enablePhysics(new BABYLON.Vector3(0, -9.8,0));
+    this._scene.gravity = new BABYLON.Vector3(0, -0.9, 0);
+
+    // Enable Collisions
+    this._scene.collisionsEnabled = true;
 
     // Parameters: alpha, beta, radius, target position, scene
-    this._camera = new BABYLON.ArcRotateCamera("mainCam", 0, Math.PI/2, 30, new BABYLON.Vector3(0,0,0), this._scene);
+    this._camera = new BABYLON.ArcRotateCamera("mainCam", 0, Math.PI/2, 25, new BABYLON.Vector3(0,0,0), this._scene);
 
     // Attach the camera to the canvas.
     this._camera.attachControl(this._canvas, false);
     this._camera.inputs.clear();
 
+    
     // Create a basic light, aiming 0,1,0 - meaning, to the sky.
     this._light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0,1,0), this._scene);
 
     // Create a built-in "sphere" shape; with 16 segments and diameter of 2.
-    let TowerCore = BABYLON.MeshBuilder.CreateCylinder("TowerCore",{height: 40, diameter: 20, tessellation: 8, subdivisions: 5}, this._scene);
-    let brickMat = new BABYLON.StandardMaterial("brick", this._scene);
-    let tex = new BABYLON.Texture("./Assets/Textures/brick.png", this._scene);
-    tex.uScale = 10; tex.vScale = 10;
-    brickMat.diffuseTexture = tex;
-    TowerCore.material = brickMat;
+    let _towerCore = BABYLON.MeshBuilder.CreateCylinder("TowerCore",{height: 40, diameter: 20, tessellation: 8, subdivisions: 5}, this._scene);
+    //_towerCore.physicsImpostor = new BABYLON.PhysicsImpostor(_towerCore,BABYLON.PhysicsImpostor.CylinderImpostor, {mass: 0, restitution: 0.9 }, this._scene);
+    _towerCore.checkCollisions = true;
 
-    let keyheld : Boolean = false;
+    let brickMat = new BABYLON.StandardMaterial("brick", this._scene);
+    this._towerCoreTexture = new BABYLON.Texture("./Assets/Textures/brick.png", this._scene);
+    this._towerCoreTexture.uScale = 10; this._towerCoreTexture.vScale = 10;
+    brickMat.diffuseTexture = this._towerCoreTexture;
+    _towerCore.material = brickMat;
+
+    let blockTex  = new BABYLON.Texture("./Assets/Textures/brick.png", this._scene);
+    let blockMat = new BABYLON.StandardMaterial("block", this._scene);
+    blockMat.diffuseTexture = blockTex;
+    this._towerBlocks = [];
+    for(let i:number = 0; i < 30; i ++){
+      let b = BABYLON.BoxBuilder.CreateBox("Block",{size:3}, this._scene);
+      b.position = generatePointOnCircle(2*Math.PI/10 * i, 12, Math.floor(i/10) * 6 - 8);
+      b.lookAt(generatePointOnCircle(2*Math.PI/10 * i, 14, Math.floor(i/10) * 6 - 8));
+      //b.physicsImpostor = new BABYLON.PhysicsImpostor(b, BABYLON.PhysicsImpostor.BoxImpostor, {mass:0, restitution: 0.9}, this._scene);
+      b.checkCollisions = true;
+      b.material = blockMat;
+      this._towerBlocks.push(b);
+    }
 
     // Setup
     this._scene.actionManager = new BABYLON.ActionManager(this._scene);
@@ -49,7 +75,7 @@ class Game {
     palletes.push(new BABYLON.Texture("./Assets/Effects/paletteBerry.png", this._scene));
     palletes.push(new BABYLON.Texture("./Assets/Effects/paletteLolipop.png", this._scene));
     palletes.push(new BABYLON.Texture("./Assets/Effects/paletteSepia.png", this._scene));
-    
+
     palletteEffect.onApply = function (effect) {
         effect.setFloat2("screenSize", palletteEffect.width, palletteEffect.height);
         effect.setTexture("pallete", palletes[currentPallet]);
@@ -67,9 +93,8 @@ class Game {
     //
     let spriteManagerPlayer = new BABYLON.SpriteManager("playerManager","Assets/Sprites/Player.png", 4, {width: 64, height: 64}, this._scene);
     
-    this._player = new towerObject(new BABYLON.Vector2(0,0), 14, new BABYLON.Sprite("player", spriteManagerPlayer));
-    //this._player.sprite.position = new BABYLON.Vector3(0,5, 10);
-    this._player.sprite.size *= 5;
+    this._player = new towerObject(new BABYLON.Vector2(0,0), 13, new BABYLON.Sprite("player", spriteManagerPlayer), this._scene);
+    this._player.sprite.size *= 3;
     this._player.sprite.playAnimation(0, 3, true,100,() => {});
 
     //setup update
@@ -92,11 +117,23 @@ class Game {
   // runs before render
   update() : void {
     let dir = this._playerInput.getDirection();
-    this._player.position.x += dir.x/50;
-    this._player.position.y += dir.y/50;
+    dir.x *= 0.01;
+    dir.y *= 0.4;
+    dir.y -= 0.2;//apply gravity
+    let temp = this._player.getLocalPosition(this._player.position.add(dir));
+
+    //update player colider
+    this._player.collisionMesh.moveWithCollisions(temp.subtract(this._player.sprite.position));
+
+    //update player
+    let temp2 = generateCylindricalPoint(this._player.collisionMesh.position);
+
+    this._player.position = new BABYLON.Vector2(temp2[0],temp2[2]);
     this._player.update();
-    console.log(this._player.position);
-    console.log(this._player.sprite.position);
+
+    this._towerCoreTexture.vOffset += 0.01;
+
+    // Camera follow player
     if(this._camera != null) {
       if(this._camera.alpha > this._player.position.x + 0.1)
         this._camera.alpha -= (this._camera.alpha - this._player.position.x)/15;

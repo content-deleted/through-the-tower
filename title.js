@@ -168,13 +168,23 @@ var fadeManager = /** @class */ (function () {
     return fadeManager;
 }());
 var towerObject = /** @class */ (function () {
-    function towerObject(position, radius, sprite) {
+    function towerObject(position, radius, sprite, scene) {
         this.position = position;
         this.radius = radius;
         this.sprite = sprite;
+        this.collisionMesh = BABYLON.BoxBuilder.CreateBox("BoxCollider", { size: 2 }, scene);
+        this.collisionMesh.checkCollisions = true;
+        this.collisionMesh.visibility = 0;
+        this.update();
+        this.collisionMesh.position = this.sprite.position;
     }
     towerObject.prototype.update = function () {
-        this.sprite.position = generatePointOnCircle(this.position.x % (2 * Math.PI), this.radius, 4 * (this.position.y % (2 * Math.PI)) - 2);
+        this.sprite.position = this.getLocalPosition(this.position);
+        this.collisionMesh.position = this.sprite.position;
+        this.collisionMesh.lookAt(generatePointOnCircle(this.position.x % (2 * Math.PI), this.radius + 2, this.position.y));
+    };
+    towerObject.prototype.getLocalPosition = function (pos) {
+        return generatePointOnCircle(pos.x % (2 * Math.PI), this.radius, pos.y);
     };
     return towerObject;
 }());
@@ -182,4 +192,10 @@ function generatePointOnCircle(X, radius, y) {
     var x = Math.cos(X) * radius;
     var z = Math.sin(X) * radius;
     return new BABYLON.Vector3(x, y, z);
+}
+function generateCylindricalPoint(v) {
+    var angle = Math.atan2(v.z, v.x);
+    var radius = Math.sqrt(v.x * v.x + v.z * v.z);
+    var height = v.y;
+    return [angle, radius, height];
 }
