@@ -104,8 +104,7 @@ class Game {
             parameter: "j"
         },
         () => {
-          this._player.velocity.y = 0.6;
-          console.log("pressed");
+          if(this._player.grounded) this._player.velocity.y = 0.6;
         }
       )
     );
@@ -130,6 +129,7 @@ class Game {
   // runs before render
   update() : void {
 
+    let tempY = this._player.position.y;
     // player update section
     let dir = this._playerInput.getDirection();
     dir.x *= 0.01;
@@ -148,8 +148,8 @@ class Game {
 
     this._player.position = new BABYLON.Vector2(temp2[0],temp2[2]);
     this._player.update();
-    console.log("2d "+this._player.position);
-    console.log("col "+this._player.collisionMesh.position);
+    
+    this._player.grounded = (tempY+dir.y + 0.1 <= this._player.position.y); 
 
     // Scroll
     this._towerCoreTexture.vOffset += 0.01;

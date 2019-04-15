@@ -228,6 +228,7 @@ class towerObject {
     public radius : number;
     public sprite : BABYLON.Sprite;
     public collisionMesh : BABYLON.Mesh;
+    public grounded : boolean = false;
     constructor(position : BABYLON.Vector2, radius : number, sprite : BABYLON.Sprite, scene : BABYLON.Scene ) {
       this.position = position;
       this.radius = radius;

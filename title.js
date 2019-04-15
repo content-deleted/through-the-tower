@@ -174,6 +174,7 @@ var fadeManager = /** @class */ (function () {
 }());
 var towerObject = /** @class */ (function () {
     function towerObject(position, radius, sprite, scene) {
+        this.grounded = false;
         this.position = position;
         this.radius = radius;
         this.sprite = sprite;
