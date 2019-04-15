@@ -235,7 +235,7 @@ class towerObject {
       this.sprite = sprite;
       this.collisionMesh = BABYLON.BoxBuilder.CreateBox("BoxCollider",{size: 2}, scene);
       this.collisionMesh.checkCollisions = true;
-      this.collisionMesh.visibility = 0;
+      this.collisionMesh.isVisible = false;
       this.update();
       this.collisionMesh.position = this.sprite.position;
       this.velocity = new BABYLON.Vector2;

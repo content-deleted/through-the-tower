@@ -90,6 +90,13 @@ var Game = /** @class */ (function () {
             //console.log(this._towerBlocks);
             //console.log(this._disabledTowerBlocks)
         }));
+        // DEBUG BINDING DISABLE LATER
+        this._scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
+            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+            parameter: "v"
+        }, function () {
+            _this._player.collisionMesh.isVisible = !_this._player.collisionMesh.isVisible;
+        }));
         //setup update
         this._scene.onBeforeRenderObservable.add(function () { return _this.update(); });
     };
@@ -123,17 +130,25 @@ var Game = /** @class */ (function () {
         this._player.update();
         this._player.grounded = (tempY + dir.y + 0.1 <= this._player.position.y);
         if (!this._player.grounded && dir.y > 0 && tempY + dir.y > this._player.position.y) {
-            this._player.position.y = -0.1;
+            this._player.velocity.y = 0;
+            this._player.position.y -= 0.2;
+            this._player.update();
             console.log("bump");
         }
         // Scroll
         this._towerCoreTexture.vOffset += this._towerSpeed / 4;
         // Camera follow player
         if (this._camera != null) {
-            if (this._camera.alpha > this._player.position.x + 0.1)
-                this._camera.alpha -= (this._camera.alpha - this._player.position.x) / 15;
-            else if (this._camera.alpha < this._player.position.x - 0.1)
-                this._camera.alpha -= (this._camera.alpha - this._player.position.x) / 15;
+            var c = this._camera.alpha % (2 * Math.PI);
+            var p = this._player.position.x;
+            if (Math.abs(c - p) > Math.PI) {
+                c = (c + 2 * Math.PI - 0.1) % (2 * Math.PI);
+                p = (p + 2 * Math.PI - 0.1) % (2 * Math.PI);
+            }
+            if (c > p + 0.1)
+                this._camera.alpha -= (c - p) / 15;
+            else if (c < p - 0.1)
+                this._camera.alpha -= (c - p) / 15;
         }
         // update blocks
         this.updateBlocksList();

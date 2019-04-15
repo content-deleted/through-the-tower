@@ -128,6 +128,19 @@ class Game {
         }
       )
     );
+    
+    // DEBUG BINDING DISABLE LATER
+    this._scene.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(
+        {
+            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+            parameter: "v"
+        },
+        () => {
+          this._player.collisionMesh.isVisible = !this._player.collisionMesh.isVisible;
+        }
+      )
+    );
 
     //setup update
     this._scene.onBeforeRenderObservable.add(()=>this.update());
@@ -172,7 +185,8 @@ class Game {
     this._player.grounded = (tempY+dir.y + 0.1 <= this._player.position.y); 
     if(!this._player.grounded && dir.y > 0 && tempY+dir.y > this._player.position.y) { 
           this._player.velocity.y = 0;
-          this._player.position.y = -0.1;
+          this._player.position.y -= 0.2;
+          this._player.update();
           console.log("bump");
     }
     
@@ -182,10 +196,16 @@ class Game {
 
     // Camera follow player
     if(this._camera != null) {
-      if(this._camera.alpha > this._player.position.x + 0.1)
-        this._camera.alpha -= (this._camera.alpha - this._player.position.x)/15;
-      else if(this._camera.alpha < this._player.position.x - 0.1)
-        this._camera.alpha -= (this._camera.alpha - this._player.position.x)/15;
+      let c = this._camera.alpha % (2*Math.PI);
+      let p = this._player.position.x;
+      if( Math.abs(c - p) > Math.PI){
+        c = (c+2*Math.PI - 0.1) % (2*Math.PI);
+        p = (p+2*Math.PI - 0.1) % (2*Math.PI);
+      }
+      if(c > p + 0.1)
+        this._camera.alpha -= (c - p)/15;
+      else if(c < p - 0.1)
+        this._camera.alpha -= (c - p)/15;
     }
 
     // update blocks
