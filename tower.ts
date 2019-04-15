@@ -11,6 +11,9 @@ class Game {
   public _towerCore: BABYLON.Mesh;
   public _towerCoreTexture: BABYLON.Texture;
   public _towerBlocks: BABYLON.Mesh [];
+  public _disabledTowerBlocks: BABYLON.Mesh [] = [];
+
+  public _towerSpeed: number = 0.02;
 
   constructor(canvasElement : string) {
     // Create canvas and engine.
@@ -56,9 +59,11 @@ class Game {
     blockMat.diffuseTexture = blockTex;
     this._towerBlocks = [];
     for(let i:number = 0; i < 30; i ++){
-      let b = BABYLON.BoxBuilder.CreateBox("Block",{size:3}, this._scene);
-      b.position = generatePointOnCircle(2*Math.PI/10 * i, 12, Math.floor(i/10) * 6 - 8);
-      b.lookAt(generatePointOnCircle(2*Math.PI/10 * i, 14, Math.floor(i/10) * 6 - 8));
+      let b = BABYLON.BoxBuilder.CreateBox("Block",{size:2.5}, this._scene);
+      let x = 2*Math.PI/10 * i + Math.floor(i/10) * 5;
+      let y = Math.floor(i/10) * 6 - 8;
+      b.position = generatePointOnCircle(x, 12, y);
+      b.lookAt(generatePointOnCircle(x, 14,y));
       //b.physicsImpostor = new BABYLON.PhysicsImpostor(b, BABYLON.PhysicsImpostor.BoxImpostor, {mass:0, restitution: 0.9}, this._scene);
       b.checkCollisions = true;
       b.material = blockMat;
@@ -104,7 +109,22 @@ class Game {
             parameter: "j"
         },
         () => {
-          if(this._player.grounded) this._player.velocity.y = 0.6;
+          if(this._player.grounded) this._player.velocity.y = 0.75;
+        }
+      )
+    );
+
+
+    // DEBUG BINDING DISABLE LATER
+    this._scene.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(
+        {
+            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+            parameter: "p"
+        },
+        () => {
+          //console.log(this._towerBlocks);
+          //console.log(this._disabledTowerBlocks)
         }
       )
     );
@@ -150,9 +170,15 @@ class Game {
     this._player.update();
     
     this._player.grounded = (tempY+dir.y + 0.1 <= this._player.position.y); 
+    if(!this._player.grounded && dir.y > 0 && tempY+dir.y > this._player.position.y) { 
+          this._player.velocity.y = 0;
+          this._player.position.y = -0.1;
+          console.log("bump");
+    }
+    
 
     // Scroll
-    this._towerCoreTexture.vOffset += 0.01;
+    this._towerCoreTexture.vOffset += this._towerSpeed/4;
 
     // Camera follow player
     if(this._camera != null) {
@@ -161,6 +187,9 @@ class Game {
       else if(this._camera.alpha < this._player.position.x - 0.1)
         this._camera.alpha -= (this._camera.alpha - this._player.position.x)/15;
     }
+
+    // update blocks
+    this.updateBlocksList();
   }
 
   startCloud(): void {
@@ -175,7 +204,7 @@ class Game {
     particleSystem.particleTexture = fogTexture.clone();
     var fountain = BABYLON.Mesh.CreateBox("foutain", .01, this._scene);
     fountain.position.y = -10;
-    fountain.visibility = 0;
+    fountain.isVisible = false;
     particleSystem.emitter = fountain;
     
     particleSystem.color1 = new BABYLON.Color4(0.8, 0.8, 0.8, 0.1);
@@ -197,8 +226,37 @@ class Game {
 
     particleSystem.start();
   }
+  private towerBottom : number = -10;
+  updateBlocksList() : void {
+    this._towerBlocks.forEach((block, index) => {
+      block.position.y -= this._towerSpeed;
 
+      // if block is offscreen we disable 
+      if(block.position.y < this.towerBottom){
+        this._disabledTowerBlocks.push(block);
+        block.isVisible = false;
+        this._towerBlocks.splice(index, 1);
+      }
+    });
+
+    // spawn new tower blocks
+    if( this._disabledTowerBlocks.length > 0) {
+      let BlockToPlace = this._disabledTowerBlocks.pop();
+      BlockToPlace.isVisible = true;
+      let x = this._player.position.x + (Math.random() - 0.5) * 2;
+      let y = 8;
+      BlockToPlace.position =  generatePointOnCircle(x, 12, y);
+      BlockToPlace.lookAt(generatePointOnCircle(x, 14,y)); 
+      this._towerBlocks.push(BlockToPlace);
+    }
+  }
 }
+/*
+// if block is disabled 
+      if(block.visibility === 0){
+        
+      }
+*/
 
 class keyInput {
   public isDown : boolean;

@@ -1,6 +1,9 @@
 ///<reference path="babylon.d.ts" />
 var Game = /** @class */ (function () {
     function Game(canvasElement) {
+        this._disabledTowerBlocks = [];
+        this._towerSpeed = 0.02;
+        this.towerBottom = -10;
         // Create canvas and engine.
         this._canvas = document.getElementById(canvasElement);
         console.log("StartingMainGameLoop");
@@ -37,9 +40,11 @@ var Game = /** @class */ (function () {
         blockMat.diffuseTexture = blockTex;
         this._towerBlocks = [];
         for (var i = 0; i < 30; i++) {
-            var b = BABYLON.BoxBuilder.CreateBox("Block", { size: 3 }, this._scene);
-            b.position = generatePointOnCircle(2 * Math.PI / 10 * i, 12, Math.floor(i / 10) * 6 - 8);
-            b.lookAt(generatePointOnCircle(2 * Math.PI / 10 * i, 14, Math.floor(i / 10) * 6 - 8));
+            var b = BABYLON.BoxBuilder.CreateBox("Block", { size: 2.5 }, this._scene);
+            var x = 2 * Math.PI / 10 * i + Math.floor(i / 10) * 5;
+            var y = Math.floor(i / 10) * 6 - 8;
+            b.position = generatePointOnCircle(x, 12, y);
+            b.lookAt(generatePointOnCircle(x, 14, y));
             //b.physicsImpostor = new BABYLON.PhysicsImpostor(b, BABYLON.PhysicsImpostor.BoxImpostor, {mass:0, restitution: 0.9}, this._scene);
             b.checkCollisions = true;
             b.material = blockMat;
@@ -75,7 +80,15 @@ var Game = /** @class */ (function () {
             parameter: "j"
         }, function () {
             if (_this._player.grounded)
-                _this._player.velocity.y = 0.6;
+                _this._player.velocity.y = 0.75;
+        }));
+        // DEBUG BINDING DISABLE LATER
+        this._scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
+            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+            parameter: "p"
+        }, function () {
+            //console.log(this._towerBlocks);
+            //console.log(this._disabledTowerBlocks)
         }));
         //setup update
         this._scene.onBeforeRenderObservable.add(function () { return _this.update(); });
@@ -109,8 +122,12 @@ var Game = /** @class */ (function () {
         this._player.position = new BABYLON.Vector2(temp2[0], temp2[2]);
         this._player.update();
         this._player.grounded = (tempY + dir.y + 0.1 <= this._player.position.y);
+        if (!this._player.grounded && dir.y > 0 && tempY + dir.y > this._player.position.y) {
+            this._player.position.y = -0.1;
+            console.log("bump");
+        }
         // Scroll
-        this._towerCoreTexture.vOffset += 0.01;
+        this._towerCoreTexture.vOffset += this._towerSpeed / 4;
         // Camera follow player
         if (this._camera != null) {
             if (this._camera.alpha > this._player.position.x + 0.1)
@@ -118,6 +135,8 @@ var Game = /** @class */ (function () {
             else if (this._camera.alpha < this._player.position.x - 0.1)
                 this._camera.alpha -= (this._camera.alpha - this._player.position.x) / 15;
         }
+        // update blocks
+        this.updateBlocksList();
     };
     Game.prototype.startCloud = function () {
         var fogTexture = new BABYLON.Texture("./Assets/Textures/smoke_15.png", this._scene);
@@ -129,7 +148,7 @@ var Game = /** @class */ (function () {
         particleSystem.particleTexture = fogTexture.clone();
         var fountain = BABYLON.Mesh.CreateBox("foutain", .01, this._scene);
         fountain.position.y = -10;
-        fountain.visibility = 0;
+        fountain.isVisible = false;
         particleSystem.emitter = fountain;
         particleSystem.color1 = new BABYLON.Color4(0.8, 0.8, 0.8, 0.1);
         particleSystem.color2 = new BABYLON.Color4(.95, .95, .95, 0.15);
@@ -149,8 +168,36 @@ var Game = /** @class */ (function () {
         particleSystem.updateSpeed = 0.005;
         particleSystem.start();
     };
+    Game.prototype.updateBlocksList = function () {
+        var _this = this;
+        this._towerBlocks.forEach(function (block, index) {
+            block.position.y -= _this._towerSpeed;
+            // if block is offscreen we disable 
+            if (block.position.y < _this.towerBottom) {
+                _this._disabledTowerBlocks.push(block);
+                block.isVisible = false;
+                _this._towerBlocks.splice(index, 1);
+            }
+        });
+        // spawn new tower blocks
+        if (this._disabledTowerBlocks.length > 0) {
+            var BlockToPlace = this._disabledTowerBlocks.pop();
+            BlockToPlace.isVisible = true;
+            var x = this._player.position.x + (Math.random() - 0.5) * 2;
+            var y = 8;
+            BlockToPlace.position = generatePointOnCircle(x, 12, y);
+            BlockToPlace.lookAt(generatePointOnCircle(x, 14, y));
+            this._towerBlocks.push(BlockToPlace);
+        }
+    };
     return Game;
 }());
+/*
+// if block is disabled
+      if(block.visibility === 0){
+        
+      }
+*/
 var keyInput = /** @class */ (function () {
     function keyInput(key, onPress, onRelease, scene) {
         var _this = this;
