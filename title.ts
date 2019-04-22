@@ -118,7 +118,7 @@ class Title {
     var intro = new BABYLON.Sound(
       "intro", "./Assets/Music/intro.wav", this._scene, null, {
          loop: true, 
-         autoplay: false //change to play 
+         autoplay: true //change to play 
       }
     );
   }

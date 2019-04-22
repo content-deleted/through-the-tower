@@ -84,7 +84,7 @@ var Title = /** @class */ (function () {
         // Start music
         var intro = new BABYLON.Sound("intro", "./Assets/Music/intro.wav", this._scene, null, {
             loop: true,
-            autoplay: false //change to play 
+            autoplay: true //change to play 
         });
     };
     Title.prototype.doRender = function () {

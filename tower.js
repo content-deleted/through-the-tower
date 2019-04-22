@@ -198,8 +198,8 @@ var Game = /** @class */ (function () {
         if (this._disabledTowerBlocks.length > 0) {
             var BlockToPlace = this._disabledTowerBlocks.pop();
             BlockToPlace.isVisible = true;
-            var x = this._player.position.x + (Math.random() - 0.5) * 2;
-            var y = 8;
+            var x = this._player.position.x + (Math.random() - 0.5) * 4;
+            var y = 10;
             BlockToPlace.position = generatePointOnCircle(x, 12, y);
             BlockToPlace.lookAt(generatePointOnCircle(x, 14, y));
             this._towerBlocks.push(BlockToPlace);
