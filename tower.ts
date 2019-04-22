@@ -96,14 +96,13 @@ class Game {
     this.startCloud();
     
     //
-    let spriteManagerPlayer = new BABYLON.SpriteManager("playerManager","Assets/Sprites/Player.png", 4, {width: 64, height: 64}, this._scene);
+    let spriteManagerPlayer = new BABYLON.SpriteManager("playerManager","Assets/Sprites/Player.png", 6, {width: 64, height: 64}, this._scene);
     
-    this._player = new playerManager(new BABYLON.Vector2(0,0), 13, new BABYLON.Sprite("player", spriteManagerPlayer), this._scene);
+    this._player = new playerManager(new BABYLON.Vector2(0,0), 13, spriteManagerPlayer, this._scene, 3);
     this._player.dashSpeed = 0.25;
     this._player.dashLength = 10;
     this._player.cooldownLength = 6;
     this._player.framesCooldown = 6;
-    this._player.sprite.size *= 3;
     this._player.sprite.playAnimation(0, 3, true,100,() => {});
 
     // Jump Action
@@ -130,6 +129,9 @@ class Game {
           if(!this._player.dashing) {
             this._player.framesDashing = 0;
             this._player.dashing = true;
+
+            this._player.dashGhosts[0].position = this._player.sprite.position;
+            this._player.dashGhosts[0].color.a = 1;
           }
         }
       )

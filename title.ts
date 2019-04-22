@@ -284,12 +284,33 @@ class playerManager extends towerObject {
     public cooldownLength : number;
     public framesCooldown : number;
 
+    public dashGhosts : BABYLON.Sprite[];
+
+    constructor(position : BABYLON.Vector2, radius : number, spriteMan : BABYLON.SpriteManager, scene : BABYLON.Scene, size : number) {
+      super(position, radius, new BABYLON.Sprite("player", spriteMan), scene);
+      
+      this.sprite.size *= size;
+
+      this.dashGhosts = [];
+      for(let i = 0; i < 5; i++){
+        this.dashGhosts.push(new BABYLON.Sprite("ghost", spriteMan));
+        this.dashGhosts[i].color.a = 0;
+        this.dashGhosts[i].size *= size;
+      }
+
+    }
+
     public playerUpdate (inputDir : BABYLON.Vector2) : void {
       if(this.dashing){
         inputDir = this.dashDirection;
         inputDir.scaleInPlace(this.dashSpeed);
         inputDir.y*=3.4;
 
+        // update dash effect
+        if(this.framesDashing < 8 && this.framesDashing % 2 == 0) {
+          this.dashGhosts[1+this.framesDashing/2].position = this.sprite.position;
+          this.dashGhosts[1+this.framesDashing/2].color.a = 1;
+        }
         this.framesDashing++;
 
         // check if end of dash
@@ -306,7 +327,15 @@ class playerManager extends towerObject {
           inputDir.y = -0.2 * this.framesCooldown/this.cooldownLength;
         }
       }
+      // sprite dir
+      if(inputDir.x != 0){
+        if(inputDir.x > 0) this.sprite.invertU = 1;
+        else this.sprite.invertU = 0;
+      }
+
       this.updateGamePosition(inputDir);
+
+      this.dashGhosts.forEach( (g)=> g.color.a-=0.05);
     }
 }
 

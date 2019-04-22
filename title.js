@@ -229,11 +229,18 @@ var towerObject = /** @class */ (function () {
 }());
 var playerManager = /** @class */ (function (_super) {
     __extends(playerManager, _super);
-    function playerManager() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
+    function playerManager(position, radius, spriteMan, scene, size) {
+        var _this = _super.call(this, position, radius, new BABYLON.Sprite("player", spriteMan), scene) || this;
         _this.dashing = false;
         _this.dashDirection = new BABYLON.Vector2();
         _this.framesDashing = 0;
+        _this.sprite.size *= size;
+        _this.dashGhosts = [];
+        for (var i = 0; i < 5; i++) {
+            _this.dashGhosts.push(new BABYLON.Sprite("ghost", spriteMan));
+            _this.dashGhosts[i].color.a = 0;
+            _this.dashGhosts[i].size *= size;
+        }
         return _this;
     }
     playerManager.prototype.playerUpdate = function (inputDir) {
@@ -241,6 +248,11 @@ var playerManager = /** @class */ (function (_super) {
             inputDir = this.dashDirection;
             inputDir.scaleInPlace(this.dashSpeed);
             inputDir.y *= 3.4;
+            // update dash effect
+            if (this.framesDashing < 8 && this.framesDashing % 2 == 0) {
+                this.dashGhosts[1 + this.framesDashing / 2].position = this.sprite.position;
+                this.dashGhosts[1 + this.framesDashing / 2].color.a = 1;
+            }
             this.framesDashing++;
             // check if end of dash
             if (this.framesDashing > this.dashLength) {
@@ -259,7 +271,15 @@ var playerManager = /** @class */ (function (_super) {
                 inputDir.y = -0.2 * this.framesCooldown / this.cooldownLength;
             }
         }
+        // sprite dir
+        if (inputDir.x != 0) {
+            if (inputDir.x > 0)
+                this.sprite.invertU = 1;
+            else
+                this.sprite.invertU = 0;
+        }
         this.updateGamePosition(inputDir);
+        this.dashGhosts.forEach(function (g) { return g.color.a -= 0.05; });
     };
     return playerManager;
 }(towerObject));
