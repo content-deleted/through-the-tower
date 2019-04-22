@@ -99,6 +99,11 @@ var Game = /** @class */ (function () {
         }));
         //setup update
         this._scene.onBeforeRenderObservable.add(function () { return _this.update(); });
+        // Start music
+        var tower = new BABYLON.Sound("tower", "./Assets/Music/tower.wav", this._scene, null, {
+            loop: true,
+            autoplay: true //change to play 
+        });
     };
     Game.prototype.doRender = function () {
         var _this = this;
