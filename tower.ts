@@ -99,7 +99,7 @@ class Game {
     let spriteManagerPlayer = new BABYLON.SpriteManager("playerManager","Assets/Sprites/Player.png", 6, {width: 64, height: 64}, this._scene);
     
     this._player = new playerManager(new BABYLON.Vector2(0,0), 13, spriteManagerPlayer, this._scene, 3);
-    this._player.dashSpeed = 0.25;
+    this._player.dashSpeed = 0.05;
     this._player.dashLength = 10;
     this._player.cooldownLength = 6;
     this._player.framesCooldown = 6;
@@ -129,9 +129,11 @@ class Game {
           if(!this._player.dashing) {
             this._player.framesDashing = 0;
             this._player.dashing = true;
+            this._player.velocity = BABYLON.Vector2.Zero();
 
             this._player.dashGhosts[0].position = this._player.sprite.position;
             this._player.dashGhosts[0].color.a = 1;
+            this._player.dashGhosts[0].isVisible = true;
           }
         }
       )

@@ -73,7 +73,7 @@ var Game = /** @class */ (function () {
         //
         var spriteManagerPlayer = new BABYLON.SpriteManager("playerManager", "Assets/Sprites/Player.png", 6, { width: 64, height: 64 }, this._scene);
         this._player = new playerManager(new BABYLON.Vector2(0, 0), 13, spriteManagerPlayer, this._scene, 3);
-        this._player.dashSpeed = 0.25;
+        this._player.dashSpeed = 0.05;
         this._player.dashLength = 10;
         this._player.cooldownLength = 6;
         this._player.framesCooldown = 6;
@@ -94,8 +94,10 @@ var Game = /** @class */ (function () {
             if (!_this._player.dashing) {
                 _this._player.framesDashing = 0;
                 _this._player.dashing = true;
+                _this._player.velocity = BABYLON.Vector2.Zero();
                 _this._player.dashGhosts[0].position = _this._player.sprite.position;
                 _this._player.dashGhosts[0].color.a = 1;
+                _this._player.dashGhosts[0].isVisible = true;
             }
         }));
         // DEBUG BINDING DISABLE LATER

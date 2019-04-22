@@ -245,13 +245,16 @@ var playerManager = /** @class */ (function (_super) {
     }
     playerManager.prototype.playerUpdate = function (inputDir) {
         if (this.dashing) {
-            inputDir = this.dashDirection;
+            inputDir = this.dashDirection.copyFrom(inputDir);
             inputDir.scaleInPlace(this.dashSpeed);
-            inputDir.y *= 3.4;
+            inputDir.y *= 10;
             // update dash effect
             if (this.framesDashing < 8 && this.framesDashing % 2 == 0) {
-                this.dashGhosts[1 + this.framesDashing / 2].position = this.sprite.position;
-                this.dashGhosts[1 + this.framesDashing / 2].color.a = 1;
+                var index = 1 + this.framesDashing / 2;
+                this.dashGhosts[index].position = this.sprite.position;
+                this.dashGhosts[index].color.a = 1;
+                this.dashGhosts[index].isVisible = true;
+                this.dashGhosts[index].invertU = (inputDir.x > 0) ? 1 : 0;
             }
             this.framesDashing++;
             // check if end of dash
@@ -270,6 +273,9 @@ var playerManager = /** @class */ (function (_super) {
             else {
                 inputDir.y = -0.2 * this.framesCooldown / this.cooldownLength;
             }
+            // set ghosts to invisible
+            if (this.dashGhosts[4].color.a <= 0)
+                this.dashGhosts.forEach(function (g) { return g.isVisible = false; });
         }
         // sprite dir
         if (inputDir.x != 0) {
