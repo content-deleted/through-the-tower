@@ -6,7 +6,7 @@ class Game {
   public _camera: BABYLON.ArcRotateCamera;
   public _light: BABYLON.Light;
   public _playerInput: PlayerInput;
-  public _player: towerObject;
+  public _player: playerManager;
 
   public _towerCore: BABYLON.Mesh;
   public _towerCoreTexture: BABYLON.Texture;
@@ -98,10 +98,15 @@ class Game {
     //
     let spriteManagerPlayer = new BABYLON.SpriteManager("playerManager","Assets/Sprites/Player.png", 4, {width: 64, height: 64}, this._scene);
     
-    this._player = new towerObject(new BABYLON.Vector2(0,0), 13, new BABYLON.Sprite("player", spriteManagerPlayer), this._scene);
+    this._player = new playerManager(new BABYLON.Vector2(0,0), 13, new BABYLON.Sprite("player", spriteManagerPlayer), this._scene);
+    this._player.dashSpeed = 0.25;
+    this._player.dashLength = 10;
+    this._player.cooldownLength = 6;
+    this._player.framesCooldown = 6;
     this._player.sprite.size *= 3;
     this._player.sprite.playAnimation(0, 3, true,100,() => {});
 
+    // Jump Action
     this._scene.actionManager.registerAction(
       new BABYLON.ExecuteCodeAction(
         {
@@ -110,6 +115,22 @@ class Game {
         },
         () => {
           if(this._player.grounded) this._player.velocity.y = 0.75;
+        }
+      )
+    );
+
+    // Dash Action
+    this._scene.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(
+        {
+            trigger: BABYLON.ActionManager.OnKeyDownTrigger,
+            parameter: "k"
+        },
+        () => {
+          if(!this._player.dashing) {
+            this._player.framesDashing = 0;
+            this._player.dashing = true;
+          }
         }
       )
     );
@@ -169,35 +190,9 @@ class Game {
 
   // runs before render
   update() : void {
-
-    let tempY = this._player.position.y;
     // player update section
-    let dir = this._playerInput.getDirection();
-    dir.x *= 0.01;
-    dir.y *= 0.4;
-    dir.y -= 0.2;//apply gravity
-    dir = dir.add(this._player.velocity);
-    this._player.velocity = this._player.velocity.scale(0.95);
-
-    let temp = this._player.getLocalPosition(this._player.position.add(dir));
-
-    //update player colider
-    this._player.collisionMesh.moveWithCollisions(temp.subtract(this._player.sprite.position));
     
-    //update player
-    let temp2 = generateCylindricalPoint(this._player.collisionMesh.position);
-
-    this._player.position = new BABYLON.Vector2(temp2[0],temp2[2]);
-    this._player.update();
-    
-    this._player.grounded = (tempY+dir.y + 0.1 <= this._player.position.y); 
-    if(!this._player.grounded && dir.y > 0 && tempY+dir.y - 0.1 > this._player.position.y) { 
-          this._player.velocity.y = 0;
-          this._player.position.y -= 0.2;
-          this._player.update();
-          console.log("bump");
-    }
-    
+    this._player.playerUpdate(this._playerInput.getDirection());
 
     // Scroll
     this._towerCoreTexture.vOffset += this._towerSpeed/4;
@@ -257,8 +252,8 @@ class Game {
   private towerBottom : number = -10;
   updateBlocksList() : void {
     this._towerBlocks.forEach((block, index) => {
-      block.position.y -= this._towerSpeed;
-
+      block.moveWithCollisions(new BABYLON.Vector3(0, -this._towerSpeed, 0));
+      
       // if block is offscreen we disable 
       if(block.position.y < this.towerBottom){
         this._disabledTowerBlocks.push(block);

@@ -1,4 +1,17 @@
 ///<reference path="babylon.d.ts" />
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 //application data
 var palletes = [];
 var currentPallet = 0;
@@ -193,8 +206,63 @@ var towerObject = /** @class */ (function () {
     towerObject.prototype.getLocalPosition = function (pos) {
         return generatePointOnCircle(pos.x % (2 * Math.PI), this.radius, pos.y);
     };
+    towerObject.prototype.updateGamePosition = function (dir) {
+        var tempY = this.position.y;
+        dir = dir.add(this.velocity);
+        this.velocity = this.velocity.scale(0.95);
+        var temp = this.getLocalPosition(this.position.add(dir));
+        //update colider
+        this.collisionMesh.moveWithCollisions(temp.subtract(this.sprite.position));
+        //update tower position
+        var temp2 = generateCylindricalPoint(this.collisionMesh.position);
+        this.position = new BABYLON.Vector2(temp2[0], temp2[2]);
+        this.update();
+        // correct for moving blocks
+        this.grounded = (tempY + dir.y + 0.1 <= this.position.y);
+        if (!this.grounded && dir.y > 0 && tempY + dir.y - 0.1 > this.position.y) {
+            this.velocity.y = 0;
+            this.position.y -= 0.2;
+            this.update();
+        }
+    };
     return towerObject;
 }());
+var playerManager = /** @class */ (function (_super) {
+    __extends(playerManager, _super);
+    function playerManager() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.dashing = false;
+        _this.dashDirection = new BABYLON.Vector2();
+        _this.framesDashing = 0;
+        return _this;
+    }
+    playerManager.prototype.playerUpdate = function (inputDir) {
+        if (this.dashing) {
+            inputDir = this.dashDirection;
+            inputDir.scaleInPlace(this.dashSpeed);
+            inputDir.y *= 3.4;
+            this.framesDashing++;
+            // check if end of dash
+            if (this.framesDashing > this.dashLength) {
+                this.dashing = false;
+                this.framesCooldown = 0;
+            }
+        }
+        else {
+            if (inputDir.length() > 0)
+                this.dashDirection.copyFrom(inputDir);
+            inputDir.x *= 0.01;
+            this.framesCooldown++;
+            if (this.framesCooldown > this.cooldownLength)
+                inputDir.y = -0.2; //apply gravity
+            else {
+                inputDir.y = -0.2 * this.framesCooldown / this.cooldownLength;
+            }
+        }
+        this.updateGamePosition(inputDir);
+    };
+    return playerManager;
+}(towerObject));
 function generatePointOnCircle(X, radius, y) {
     var x = Math.cos(X) * radius;
     var z = Math.sin(X) * radius;

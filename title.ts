@@ -249,6 +249,65 @@ class towerObject {
     public getLocalPosition (pos : BABYLON.Vector2): BABYLON.Vector3 {
       return generatePointOnCircle(pos.x % (2*Math.PI), this.radius, pos.y);
     }
+
+    public updateGamePosition (dir : BABYLON.Vector2) : void {
+      let tempY = this.position.y;
+      dir = dir.add(this.velocity);
+      this.velocity = this.velocity.scale(0.95);
+  
+      let temp = this.getLocalPosition(this.position.add(dir));
+  
+      //update colider
+      this.collisionMesh.moveWithCollisions(temp.subtract(this.sprite.position));
+      
+      //update tower position
+      let temp2 = generateCylindricalPoint(this.collisionMesh.position);
+  
+      this.position = new BABYLON.Vector2(temp2[0],temp2[2]);
+      this.update();
+      
+      // correct for moving blocks
+      this.grounded = (tempY+dir.y + 0.1 <= this.position.y); 
+      if(!this.grounded && dir.y > 0 && tempY+dir.y - 0.1 > this.position.y) { 
+        this.velocity.y = 0;
+        this.position.y -= 0.2;
+        this.update();
+      }
+    }
+}
+class playerManager extends towerObject {
+    public dashing : boolean = false;
+    public dashSpeed : number;
+    public dashDirection: BABYLON.Vector2 = new BABYLON.Vector2();
+    public framesDashing: number = 0;
+    public dashLength: number;
+    public cooldownLength : number;
+    public framesCooldown : number;
+
+    public playerUpdate (inputDir : BABYLON.Vector2) : void {
+      if(this.dashing){
+        inputDir = this.dashDirection;
+        inputDir.scaleInPlace(this.dashSpeed);
+        inputDir.y*=3.4;
+
+        this.framesDashing++;
+
+        // check if end of dash
+        if(this.framesDashing > this.dashLength) {
+          this.dashing = false;
+          this.framesCooldown = 0;
+        }
+      } else {
+        if(inputDir.length() > 0) this.dashDirection.copyFrom(inputDir);
+        inputDir.x *= 0.01;
+        this.framesCooldown++;
+        if(this.framesCooldown > this.cooldownLength) inputDir.y = -0.2;//apply gravity
+        else {
+          inputDir.y = -0.2 * this.framesCooldown/this.cooldownLength;
+        }
+      }
+      this.updateGamePosition(inputDir);
+    }
 }
 
 function generatePointOnCircle (X, radius, y) {
