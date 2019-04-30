@@ -229,11 +229,11 @@ class towerObject {
     public sprite : BABYLON.Sprite;
     public collisionMesh : BABYLON.Mesh;
     public grounded : boolean = false;
-    constructor(position : BABYLON.Vector2, radius : number, sprite : BABYLON.Sprite, scene : BABYLON.Scene ) {
+    constructor(position : BABYLON.Vector2, radius : number, sprite : BABYLON.Sprite, scene : BABYLON.Scene, collisionBoxArgs ) {
       this.position = position;
       this.radius = radius;
       this.sprite = sprite;
-      this.collisionMesh = BABYLON.BoxBuilder.CreateBox("BoxCollider",{size: 2}, scene);
+      this.collisionMesh = BABYLON.BoxBuilder.CreateBox("BoxCollider",collisionBoxArgs, scene);
       this.collisionMesh.checkCollisions = true;
       this.collisionMesh.isVisible = false;
       this.update();
@@ -287,7 +287,7 @@ class playerManager extends towerObject {
     public dashGhosts : BABYLON.Sprite[];
 
     constructor(position : BABYLON.Vector2, radius : number, spriteMan : BABYLON.SpriteManager, scene : BABYLON.Scene, size : number) {
-      super(position, radius, new BABYLON.Sprite("player", spriteMan), scene);
+      super(position, radius, new BABYLON.Sprite("player", spriteMan), scene, {size: 2});
       
       this.sprite.size *= size;
 

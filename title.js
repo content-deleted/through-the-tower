@@ -186,12 +186,12 @@ var fadeManager = /** @class */ (function () {
     return fadeManager;
 }());
 var towerObject = /** @class */ (function () {
-    function towerObject(position, radius, sprite, scene) {
+    function towerObject(position, radius, sprite, scene, collisionBoxArgs) {
         this.grounded = false;
         this.position = position;
         this.radius = radius;
         this.sprite = sprite;
-        this.collisionMesh = BABYLON.BoxBuilder.CreateBox("BoxCollider", { size: 2 }, scene);
+        this.collisionMesh = BABYLON.BoxBuilder.CreateBox("BoxCollider", collisionBoxArgs, scene);
         this.collisionMesh.checkCollisions = true;
         this.collisionMesh.isVisible = false;
         this.update();
@@ -230,7 +230,7 @@ var towerObject = /** @class */ (function () {
 var playerManager = /** @class */ (function (_super) {
     __extends(playerManager, _super);
     function playerManager(position, radius, spriteMan, scene, size) {
-        var _this = _super.call(this, position, radius, new BABYLON.Sprite("player", spriteMan), scene) || this;
+        var _this = _super.call(this, position, radius, new BABYLON.Sprite("player", spriteMan), scene, { size: 2 }) || this;
         _this.dashing = false;
         _this.dashDirection = new BABYLON.Vector2();
         _this.framesDashing = 0;

@@ -1,8 +1,10 @@
 ///<reference path="babylon.d.ts" />
 var Game = /** @class */ (function () {
     function Game(canvasElement) {
+        this._towerCore = [];
+        this._currentCore = 0;
         this._disabledTowerBlocks = [];
-        this._towerSpeed = 0.02;
+        this._towerSpeed = 0.005;
         this.towerBottom = -10;
         // Create canvas and engine.
         this._canvas = document.getElementById(canvasElement);
@@ -26,15 +28,20 @@ var Game = /** @class */ (function () {
         // Create a basic light, aiming 0,1,0 - meaning, to the sky.
         this._light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 1, 0), this._scene);
         // Create a built-in "sphere" shape; with 16 segments and diameter of 2.
-        var _towerCore = BABYLON.MeshBuilder.CreateCylinder("TowerCore", { height: 40, diameter: 20, tessellation: 8, subdivisions: 5 }, this._scene);
+        this._towerCore.push(BABYLON.MeshBuilder.CreateCylinder("TowerCore", { height: 40, diameter: 20, tessellation: 8, subdivisions: 5 }, this._scene));
+        this._towerCore.push(BABYLON.MeshBuilder.CreateCylinder("TowerCore", { height: 40, diameter: 20, tessellation: 8, subdivisions: 5 }, this._scene));
         //_towerCore.physicsImpostor = new BABYLON.PhysicsImpostor(_towerCore,BABYLON.PhysicsImpostor.CylinderImpostor, {mass: 0, restitution: 0.9 }, this._scene);
-        _towerCore.checkCollisions = true;
+        // set the backup to be higher
+        this._towerCore[1].position.y = 10;
         var brickMat = new BABYLON.StandardMaterial("brick", this._scene);
         this._towerCoreTexture = new BABYLON.Texture("./Assets/Textures/brick.png", this._scene);
         this._towerCoreTexture.uScale = 10;
         this._towerCoreTexture.vScale = 10;
         brickMat.diffuseTexture = this._towerCoreTexture;
-        _towerCore.material = brickMat;
+        this._towerCore.forEach(function (core) {
+            core.checkCollisions = true;
+            core.material = brickMat;
+        });
         var blockTex = new BABYLON.Texture("./Assets/Textures/brick.png", this._scene);
         var blockMat = new BABYLON.StandardMaterial("block", this._scene);
         blockMat.diffuseTexture = blockTex;
@@ -133,26 +140,16 @@ var Game = /** @class */ (function () {
         window.addEventListener('resize', function () {
             _this._engine.resize();
         });
+        window.focus();
     };
     // runs before render
     Game.prototype.update = function () {
         // player update section
         this._player.playerUpdate(this._playerInput.getDirection());
-        // Scroll
-        this._towerCoreTexture.vOffset += this._towerSpeed / 4;
         // Camera follow player
-        if (this._camera != null) {
-            var c = this._camera.alpha % (2 * Math.PI);
-            var p = this._player.position.x;
-            if (Math.abs(c - p) > Math.PI) {
-                c = (c + 2 * Math.PI - 0.1) % (2 * Math.PI);
-                p = (p + 2 * Math.PI - 0.1) % (2 * Math.PI);
-            }
-            if (c > p + 0.1)
-                this._camera.alpha -= (c - p) / 15;
-            else if (c < p - 0.1)
-                this._camera.alpha -= (c - p) / 15;
-        }
+        this.updateCamera();
+        // move up the center
+        this.updateCore();
         // update blocks
         this.updateBlocksList();
     };
@@ -185,13 +182,14 @@ var Game = /** @class */ (function () {
         particleSystem.maxEmitPower = 1;
         particleSystem.updateSpeed = 0.005;
         particleSystem.start();
+        this._cloudParticles = particleSystem;
     };
     Game.prototype.updateBlocksList = function () {
         var _this = this;
         this._towerBlocks.forEach(function (block, index) {
-            block.moveWithCollisions(new BABYLON.Vector3(0, -_this._towerSpeed, 0));
+            //block.moveWithCollisions(new BABYLON.Vector3(0, -this._towerSpeed, 0));
             // if block is offscreen we disable 
-            if (block.position.y < _this.towerBottom) {
+            if (block.position.y < _this._camera.target.y + _this.towerBottom) {
                 _this._disabledTowerBlocks.push(block);
                 block.isVisible = false;
                 _this._towerBlocks.splice(index, 1);
@@ -202,10 +200,40 @@ var Game = /** @class */ (function () {
             var BlockToPlace = this._disabledTowerBlocks.pop();
             BlockToPlace.isVisible = true;
             var x = this._player.position.x + (Math.random() - 0.5) * 4;
-            var y = 10;
+            var y = this._camera.target.y + 12;
             BlockToPlace.position = generatePointOnCircle(x, 12, y);
             BlockToPlace.lookAt(generatePointOnCircle(x, 14, y));
             this._towerBlocks.push(BlockToPlace);
+        }
+    };
+    Game.prototype.updateCamera = function () {
+        if (this._camera != null) {
+            var c = this._camera.alpha % (2 * Math.PI);
+            var p = this._player.position.x;
+            if (Math.abs(c - p) > Math.PI) {
+                c = (c + 2 * Math.PI - 0.1) % (2 * Math.PI);
+                p = (p + 2 * Math.PI - 0.1) % (2 * Math.PI);
+            }
+            if (c > p + 0.1)
+                this._camera.alpha -= (c - p) / 15;
+            else if (c < p - 0.1)
+                this._camera.alpha -= (c - p) / 15;
+            //update y position
+            if (this._player.sprite.position.y > this._camera.position.y + 1)
+                this._camera.target.y += 0.1;
+        }
+    };
+    Game.prototype.updateCore = function () {
+        if (this._towerCore[this._currentCore].position.y + 10 < this._camera.target.y) {
+            this._towerCore[this._currentCore].position.y = this._camera.target.y + 10;
+            this._currentCore = (this._currentCore + 1) % 1;
+        }
+        // clouds
+        if (this._cloudParticles.particles[0] !== undefined) {
+            var cur = this._cloudParticles.particles[0].position.y;
+            var amt_1 = (this._camera.target.y - cur);
+            amt_1 = this._towerSpeed * Math.max(2, amt_1);
+            this._cloudParticles.particles.forEach(function (p) { return p.position.y += amt_1; });
         }
     };
     return Game;

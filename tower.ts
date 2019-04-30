@@ -8,12 +8,15 @@ class Game {
   public _playerInput: PlayerInput;
   public _player: playerManager;
 
-  public _towerCore: BABYLON.Mesh;
+  public _towerCore: BABYLON.Mesh [] = [];
+  public _currentCore: number = 0;
   public _towerCoreTexture: BABYLON.Texture;
   public _towerBlocks: BABYLON.Mesh [];
   public _disabledTowerBlocks: BABYLON.Mesh [] = [];
 
-  public _towerSpeed: number = 0.02;
+  public _towerSpeed: number = 0.005;
+
+  public _cloudParticles: BABYLON.ParticleSystem;
 
   constructor(canvasElement : string) {
     // Create canvas and engine.
@@ -44,15 +47,22 @@ class Game {
     this._light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0,1,0), this._scene);
 
     // Create a built-in "sphere" shape; with 16 segments and diameter of 2.
-    let _towerCore = BABYLON.MeshBuilder.CreateCylinder("TowerCore",{height: 40, diameter: 20, tessellation: 8, subdivisions: 5}, this._scene);
+    this._towerCore.push(BABYLON.MeshBuilder.CreateCylinder("TowerCore",{height: 40, diameter: 20, tessellation: 8, subdivisions: 5}, this._scene));
+    this._towerCore.push(BABYLON.MeshBuilder.CreateCylinder("TowerCore",{height: 40, diameter: 20, tessellation: 8, subdivisions: 5}, this._scene));
     //_towerCore.physicsImpostor = new BABYLON.PhysicsImpostor(_towerCore,BABYLON.PhysicsImpostor.CylinderImpostor, {mass: 0, restitution: 0.9 }, this._scene);
-    _towerCore.checkCollisions = true;
+    // set the backup to be higher
+    this._towerCore[1].position.y=10;
 
     let brickMat = new BABYLON.StandardMaterial("brick", this._scene);
     this._towerCoreTexture = new BABYLON.Texture("./Assets/Textures/brick.png", this._scene);
     this._towerCoreTexture.uScale = 10; this._towerCoreTexture.vScale = 10;
     brickMat.diffuseTexture = this._towerCoreTexture;
-    _towerCore.material = brickMat;
+
+    this._towerCore.forEach(core => {
+        core.checkCollisions = true;
+        core.material = brickMat;
+    }); 
+    
 
     let blockTex  = new BABYLON.Texture("./Assets/Textures/brick.png", this._scene);
     let blockMat = new BABYLON.StandardMaterial("block", this._scene);
@@ -168,7 +178,7 @@ class Game {
     );
 
     //setup update
-    this._scene.onBeforeRenderObservable.add(()=>this.update());
+    this._scene.onBeforeRenderObservable.add(()=> this.update());
 
     // Start music
     var tower = new BABYLON.Sound(
@@ -188,7 +198,9 @@ class Game {
     // The canvas/window resize event handler.
     window.addEventListener('resize', () => {
         this._engine.resize();
+
     });
+    window.focus();
   }
 
 
@@ -198,22 +210,11 @@ class Game {
     
     this._player.playerUpdate(this._playerInput.getDirection());
 
-    // Scroll
-    this._towerCoreTexture.vOffset += this._towerSpeed/4;
-
     // Camera follow player
-    if(this._camera != null) {
-      let c = this._camera.alpha % (2*Math.PI);
-      let p = this._player.position.x;
-      if( Math.abs(c - p) > Math.PI){
-        c = (c+2*Math.PI - 0.1) % (2*Math.PI);
-        p = (p+2*Math.PI - 0.1) % (2*Math.PI);
-      }
-      if(c > p + 0.1)
-        this._camera.alpha -= (c - p)/15;
-      else if(c < p - 0.1)
-        this._camera.alpha -= (c - p)/15;
-    }
+    this.updateCamera();
+
+    // move up the center
+    this.updateCore();
 
     // update blocks
     this.updateBlocksList();
@@ -227,7 +228,6 @@ class Game {
     particleSystem.minEmitBox = new BABYLON.Vector3(-25, 2, -25); // Starting all from
     particleSystem.maxEmitBox = new BABYLON.Vector3(25, 2, 25); // To...
     
-
     particleSystem.particleTexture = fogTexture.clone();
     var fountain = BABYLON.Mesh.CreateBox("foutain", .01, this._scene);
     fountain.position.y = -10;
@@ -252,14 +252,15 @@ class Game {
     particleSystem.updateSpeed = 0.005;
 
     particleSystem.start();
+    this._cloudParticles = particleSystem;
   }
   private towerBottom : number = -10;
   updateBlocksList() : void {
     this._towerBlocks.forEach((block, index) => {
-      block.moveWithCollisions(new BABYLON.Vector3(0, -this._towerSpeed, 0));
+      //block.moveWithCollisions(new BABYLON.Vector3(0, -this._towerSpeed, 0));
       
       // if block is offscreen we disable 
-      if(block.position.y < this.towerBottom){
+      if(block.position.y < this._camera.target.y + this.towerBottom){
         this._disabledTowerBlocks.push(block);
         block.isVisible = false;
         this._towerBlocks.splice(index, 1);
@@ -271,13 +272,47 @@ class Game {
       let BlockToPlace = this._disabledTowerBlocks.pop();
       BlockToPlace.isVisible = true;
       let x = this._player.position.x + (Math.random() - 0.5) * 4;
-      let y = 10;
+      let y = this._camera.target.y+12;
       BlockToPlace.position =  generatePointOnCircle(x, 12, y);
       BlockToPlace.lookAt(generatePointOnCircle(x, 14,y)); 
       this._towerBlocks.push(BlockToPlace);
     }
   }
+  updateCamera() : void {
+    if(this._camera != null) {
+      let c = this._camera.alpha % (2*Math.PI);
+      let p = this._player.position.x;
+      if( Math.abs(c - p) > Math.PI){
+        c = (c+2*Math.PI - 0.1) % (2*Math.PI);
+        p = (p+2*Math.PI - 0.1) % (2*Math.PI);
+      }
+      if(c > p + 0.1)
+        this._camera.alpha -= (c - p)/15;
+      else if(c < p - 0.1)
+        this._camera.alpha -= (c - p)/15;
+
+      //update y position
+      if(this._player.sprite.position.y > this._camera.position.y+1) this._camera.target.y+=0.1;
+    }
+  }
+  updateCore() : void {
+    if(this._towerCore[this._currentCore].position.y + 10 < this._camera.target.y) {
+      this._towerCore[this._currentCore].position.y = this._camera.target.y + 10;
+      this._currentCore = (this._currentCore + 1) % 1;
+    }
+
+
+    // clouds
+    if(this._cloudParticles.particles[0] !== undefined){
+      let cur = this._cloudParticles.particles[0].position.y;
+      let amt = (this._camera.target.y - cur);
+      amt = this._towerSpeed * Math.max(2, amt);
+      this._cloudParticles.particles.forEach(p => p.position.y+= amt);
+    }
+  }
 }
+
+
 /*
 // if block is disabled 
       if(block.visibility === 0){
